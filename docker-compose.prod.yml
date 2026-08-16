@@ -1,10 +1,10 @@
-# Sovrascrittura per la produzione.
+# Production override.
 #
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 #
-# Indicando i file esplicitamente, docker-compose.override.yml (gli extra di
-# sviluppo: codice montato dall'host, ricarica automatica) resta fuori. Quello
-# che gira è esattamente ciò che è stato costruito nell'immagine.
+# Naming the files explicitly keeps docker-compose.override.yml (the
+# development extras: host-mounted source, auto-reload) out of the picture.
+# What runs is exactly what was built into the image.
 
 services:
   db:
@@ -13,16 +13,16 @@ services:
   app:
     restart: always
     ports:
-      # Legata a 127.0.0.1: dall'esterno questa porta NON esiste.
+      # Bound to 127.0.0.1: from outside, this port does not exist.
       #
-      # Con Tailscale è `tailscale serve` a pubblicarla, e solo verso i tuoi
-      # dispositivi: su internet non c'è nessuna pagina di login da provare a
-      # forzare. Con un dominio pubblico ci arriva il reverse proxy, sempre
-      # da localhost.
+      # With Tailscale it is `tailscale serve` that publishes it, and only to
+      # your own devices: there is no login page on the public internet for
+      # anyone to hammer. With a public domain the reverse proxy reaches it,
+      # again from localhost.
       #
-      # Con il binding predefinito (0.0.0.0) la dashboard sarebbe raggiungibile
-      # in chiaro da chiunque conosca l'IP della VPS, password compresa.
+      # With the default binding (0.0.0.0) the dashboard would be reachable in
+      # the clear by anyone who knows the server's IP, password prompt and all.
       - "127.0.0.1:${APP_PORT:-8000}:8000"
-    # --proxy-headers: dietro il reverse proxy, senza questo uvicorn vede
-    # ogni richiesta come http e come proveniente dal proxy.
+    # --proxy-headers: behind the reverse proxy, without this uvicorn sees
+    # every request as http and as coming from the proxy.
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips=*

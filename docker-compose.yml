@@ -1,16 +1,17 @@
-# Configurazione di base, valida sia in sviluppo sia in produzione.
+# Base configuration, valid for both development and production.
 #
-# Gli extra di sviluppo (codice montato dall'host, ricarica automatica) NON
-# stanno qui: sono in docker-compose.override.yml, che Docker Compose carica
-# da solo in locale. In produzione si passano i file esplicitamente e
-# l'override resta fuori:
+# The development extras (source mounted from the host, auto-reload) are NOT
+# here: they live in docker-compose.override.yml, which Docker Compose loads
+# by itself locally. In production the files are passed explicitly and the
+# override stays out:
 #
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 #
-# Perché così e non con un `volumes: []` nel file di produzione: Compose
-# **unisce** le liste invece di sostituirle, quindi svuotare i volumi da un
-# file di sovrascrittura non funziona — il codice dell'host resterebbe
-# montato sopra l'immagine anche in produzione.
+# Why this way and not with a `volumes: []` in the production file: Compose
+# **merges** lists instead of replacing them, so emptying the volumes from an
+# override does not work — the host source would stay mounted over the image
+# in production too. The same applies to `ports`, which is why neither is
+# defined here.
 
 services:
   db:
@@ -31,9 +32,9 @@ services:
       timeout: 5s
       retries: 30
       start_period: 20s
-    # Nessuna porta esposta: il database è raggiungibile SOLO dal container
-    # app, sulla rete interna di Docker. Per guardarci dentro con
-    # DBeaver/Workbench, scommenta in docker-compose.override.yml.
+    # No port published: the database is reachable ONLY from the app
+    # container, over Docker's internal network. To inspect it with a GUI
+    # client, uncomment the block in docker-compose.override.yml.
 
   app:
     build: .
@@ -42,15 +43,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    # NESSUN `ports` qui: la pubblicazione della porta è diversa fra sviluppo
-    # e produzione e sta nei rispettivi file di sovrascrittura.
+    # NO `ports` here: publishing differs between development and production
+    # and belongs in the respective override files.
     #
-    # Compose **unisce** le liste invece di sostituirle: mettendo una
-    # mappatura qui, quella di produzione (`127.0.0.1:...`) si sarebbe
-    # sommata invece di rimpiazzarla, e l'app sarebbe rimasta pubblicata
-    # anche su 0.0.0.0 — cioè esposta a internet, esattamente ciò che il file
-    # di produzione deve impedire. Le due mappature litigano anche sulla
-    # stessa porta e il container non parte.
+    # Compose **merges** lists instead of replacing them: putting a mapping
+    # here would make the production one (`127.0.0.1:...`) add to it rather
+    # than replace it, leaving the app published on 0.0.0.0 as well — exposed
+    # to the internet, exactly what the production file is meant to prevent.
+    # The two mappings would also fight over the same port and the container
+    # would fail to start.
 
 volumes:
   db_data:

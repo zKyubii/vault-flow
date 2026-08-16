@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 AccountType = Literal["checking", "card", "cash", "savings"]
 
 
-# ------------------------------------------------------------------ conti
+# --------------------------------------------------------------- accounts
 
 
 class AccountCreate(BaseModel):
@@ -42,7 +42,7 @@ class AccountWithBalance(AccountOut):
     transactions: int
 
 
-# ------------------------------------------------------- profili di import
+# ---------------------------------------------------------- import profiles
 
 
 class ImportProfileBase(BaseModel):
@@ -67,7 +67,7 @@ class ImportProfileBase(BaseModel):
     col_amount_out: str | None = None
     col_external_id: str | None = None
     col_mcc: str | None = None
-    # Solo per banche che tengono commissioni/imposte FUORI dall'importo.
+    # Only for banks that keep fees and taxes OUTSIDE the amount.
     col_fee: str | None = None
     col_tax: str | None = None
     col_currency: str | None = None
@@ -89,7 +89,7 @@ class ImportProfileOut(ImportProfileBase):
     id: int
 
 
-# --------------------------------------------------------------- ispezione
+# ------------------------------------------------------------- file inspect
 
 
 class InspectLine(BaseModel):
@@ -98,7 +98,7 @@ class InspectLine(BaseModel):
 
 
 class InspectResponse(BaseModel):
-    """Aiuta a costruire la mappatura: mostra il file com'è davvero."""
+    """Helps build the mapping: shows the file as it really is."""
 
     encoding_used: str
     delimiter_guess: str
@@ -108,7 +108,7 @@ class InspectResponse(BaseModel):
     header_line_guess: int | None
 
 
-# --------------------------------------------------------------- anteprima
+# ---------------------------------------------------------------- preview
 
 
 class PreviewRow(BaseModel):
@@ -142,7 +142,7 @@ class PreviewResponse(BaseModel):
     errors: list[PreviewError]
 
 
-# ------------------------------------------------------------ import runs
+# ------------------------------------------------------------- import runs
 
 
 class ImportRunOut(BaseModel):
@@ -160,7 +160,7 @@ class ImportRunOut(BaseModel):
     created_at: datetime
 
 
-# ----------------------------------------------------------- transazioni
+# ----------------------------------------------------------- transactions
 
 
 class TransactionCreate(BaseModel):
@@ -197,7 +197,7 @@ class TransactionPage(BaseModel):
     items: list[TransactionOut]
 
 
-# ------------------------------------------------------------- categorie
+# ------------------------------------------------------------- categories
 
 
 class CategoryOut(BaseModel):
@@ -218,8 +218,8 @@ class CategoryCreate(BaseModel):
     color: str = Field(default="#9e9e9e", pattern=r"^#[0-9a-fA-F]{6}$")
     icon: str | None = Field(default=None, max_length=40)
     is_income: bool = False
-    # per giroconti, depositi su broker, saldi iniziali: restano nei saldi
-    # ma non contano come entrate o uscite
+    # for transfers, broker deposits and opening balances: they stay in the
+    # balances but do not count as income or spending
     exclude_from_stats: bool = False
 
 
@@ -232,7 +232,7 @@ class CategoryUpdate(BaseModel):
     exclude_from_stats: bool | None = None
 
 
-# --------------------------------------------------------------- regole
+# -------------------------------------------------------------------- rules
 
 
 MatchType = Literal["contains", "starts_with", "exact", "regex"]
@@ -242,7 +242,7 @@ RuleField = Literal["description", "counterparty"]
 class CategoryRuleCreate(BaseModel):
     pattern: str = Field(min_length=1, max_length=255)
     category_id: int
-    # priorità più bassa = valutata prima = vince
+    # lower priority = evaluated first = wins
     priority: int = Field(default=100, ge=0)
     field: RuleField = "description"
     match_type: MatchType = "contains"
@@ -292,11 +292,11 @@ class ApplyRulesResponse(BaseModel):
 class RuleFromTransaction(BaseModel):
     transaction_id: int
     category_id: int
-    # se assente si deduce dalla descrizione
+    # if omitted it is derived from the description
     pattern: str | None = Field(default=None, max_length=255)
     priority: int = Field(default=100, ge=0)
-    # se True riclassifica anche i movimenti che avevano già una categoria
-    # da regola (mai quelli scelti a mano)
+    # if True it also re-classifies transactions that already had a category
+    # from a rule (never the ones chosen by hand)
     recategorize: bool = False
 
 

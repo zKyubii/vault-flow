@@ -1,19 +1,19 @@
-# === SEGRETI — mai committare ===
+# === SECRETS — never commit ===
 .env
 *.env
 !.env.example
 
-# Chiavi e certificati (anche se il PSD2 non è implementato: prevenzione)
+# Keys and certificates
 *.pem
 *.key
 *.p12
 *.pfx
 *.crt
 
-# === DATI BANCARI ===
-# Gli export della banca NON devono mai finire nel repo pubblico.
-# Blocco tutti i CSV per default: se un file di test serve, va in
-# tests/fixtures/ con dati inventati.
+# === BANKING DATA ===
+# Bank exports must never end up in a public repository.
+# All CSVs are blocked by default: if a test file is needed it goes in
+# tests/fixtures/ with invented data.
 *.csv
 *.xlsx
 *.ofx
@@ -35,23 +35,23 @@ venv/
 db_data/
 backups/
 
-# I dump del database contengono tutti i movimenti: mai nel repo.
+# Database dumps contain every transaction: never in the repository.
 *.sql
 *.sql.gz
-# ...ma le MIGRAZIONI sono codice, non dati: sono lo schema del database e
-# senza di esse il build Docker fallisce (`COPY db ./db` non trova nulla) e
-# chi clona il repo non ha modo di creare le tabelle.
+# ...but MIGRATIONS are code, not data: they are the database schema, and
+# without them the Docker build fails (`COPY db ./db` finds nothing) and
+# whoever clones the repo has no way to create the tables.
 !db/migrations/
 !db/migrations/*.sql
 
-# === APPUNTI DI LAVORO — NON PUBBLICARE ===
-# CLAUDE.md contiene dati finanziari reali: saldi dei conti, tabelle di
-# movimenti con date e importi, nomi di negozi presi dagli estratti conto e
-# nomi di persone reali comparse nei bonifici. Su un repo pubblico sarebbe
-# tutto leggibile da chiunque, e i dati di terzi non sono nostri da
-# pubblicare.
+# === WORKING NOTES — DO NOT PUBLISH ===
+# CLAUDE.md holds real financial context: account balances, transaction
+# tables with dates and amounts, merchant names taken from statements and
+# names of real people appearing in transfers. In a public repository all of
+# that would be readable by anyone, and third-party data is not ours to
+# publish.
 #
-# La documentazione pubblica del progetto è il README.md.
+# The project's public documentation is README.md.
 CLAUDE.md
 
 # === Editor / OS ===

@@ -1,4 +1,4 @@
-"""Regole di categorizzazione."""
+"""Categorisation rules."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
@@ -25,7 +25,7 @@ from app.services.categorization import (
     validate_pattern,
 )
 
-router = APIRouter(tags=["categorizzazione"])
+router = APIRouter(tags=["categorisation"])
 
 
 def _check_refs(db: Session, category_id: int | None, account_id: int | None) -> None:
@@ -92,10 +92,10 @@ def delete_rule(rule_id: int, db: Session = Depends(get_db)):
 
 @router.post("/rules/apply", response_model=ApplyRulesResponse)
 def apply(payload: ApplyRulesRequest, db: Session = Depends(get_db)):
-    """Applica le regole. Di default in **prova**: non scrive niente.
+    """Applies the rules. A **dry run** by default: nothing is written.
 
-    Le transazioni con `category_source='manual'` non vengono mai toccate,
-    nemmeno con `only_uncategorized=False`.
+    Transactions with `category_source='manual'` are never touched, not even
+    with `only_uncategorized=False`.
     """
     if payload.account_id is not None and not db.get(Account, payload.account_id):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Account not found")
@@ -119,11 +119,11 @@ def apply(payload: ApplyRulesRequest, db: Session = Depends(get_db)):
 
 @router.get("/transactions/{transaction_id}/similar")
 def similar(transaction_id: int, db: Session = Depends(get_db)):
-    """Quanti movimenti assomigliano a questo, e con che testo cercarli.
+    """How many transactions look like this one, and what text finds them.
 
-    È ciò che permette di chiedere "vale anche per gli altri 29?" nel momento
-    in cui stai già scegliendo la categoria, invece di mandarti in una
-    schermata separata a scrivere un pattern a mano.
+    This is what makes it possible to ask "does it apply to the other 29 too?"
+    at the moment you are already choosing the category, instead of sending
+    you to a separate screen to write a pattern by hand.
     """
     transaction = db.get(Transaction, transaction_id)
     if not transaction:
@@ -131,17 +131,17 @@ def similar(transaction_id: int, db: Session = Depends(get_db)):
 
     pattern = suggest_pattern(transaction.description)
     result = count_matching(db, pattern=pattern)
-    # esclusa quella che si sta guardando
+    # excluding the one being looked at
     result["others"] = max(0, result["total"] - 1)
     return result
 
 
 @router.post("/rules/from-transaction", response_model=ApplyRulesResponse)
 def rule_from_transaction(payload: RuleFromTransaction, db: Session = Depends(get_db)):
-    """Crea la regola a partire da un movimento e la applica subito.
+    """Creates the rule from a transaction and applies it immediately.
 
-    La transazione di partenza resta `manual`: l'hai categorizzata tu, la
-    regola serve per le altre.
+    The originating transaction stays `manual`: you categorised it yourself,
+    the rule is for the others.
     """
     transaction = db.get(Transaction, payload.transaction_id)
     if not transaction:
@@ -184,8 +184,8 @@ def suggestions(
     account_id: int | None = None,
     db: Session = Depends(get_db),
 ):
-    """Negozi ricorrenti fra le transazioni ancora senza categoria.
+    """Recurring merchants among the still-uncategorised transactions.
 
-    Trasforma "categorizzane 400 a mano" in "crea 20 regole".
+    Turns "categorise 400 by hand" into "create 20 rules".
     """
     return suggest_rules(db, limit=limit, account_id=account_id)

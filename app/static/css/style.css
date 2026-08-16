@@ -1,28 +1,28 @@
 ﻿/* =========================================================================
-   Dashboard Spese — tema "acqua"
-   Struttura ispirata a un sito personale (griglia sfumata, aloni,
-   gradienti, vetro smerigliato), palette virata su **verde acqua → blu** su
-   fondo freddo.
+   Vault Flow — "aqua" theme
+   Structure borrowed from a personal site (masked grid, blurred glows,
+   gradients, frosted glass), palette turned to **aqua green → blue** on a
+   cold background.
 
-   Bagliori usati con parsimonia: solo sugli elementi vivi (tab attiva,
-   pulsante primario, saldo, pallini categoria). Se brilla tutto non brilla
-   niente, e una lista di 400 movimenti diventa illeggibile.
+   Glow is used sparingly: only on live elements (active tab, primary button,
+   balance, category dots). If everything glows, nothing does — and a list of
+   400 transactions becomes unreadable.
 
-   Gli importi usano il font del testo con `tabular-nums`, non un font da
-   codice: si allineano lo stesso senza l'aria da terminale.
+   Amounts use the body font with `tabular-nums`, not a code font: the
+   columns still line up, without the terminal look.
 
-   Mobile-first. Tema scuro unico: questa palette è pensata per il fondo
-   scuro, su fondo chiaro i colori accesi si spengono.
+   Mobile-first. Dark theme only: this palette is designed for a dark
+   background, on a light one the bright colours die.
    ========================================================================= */
 
-/* I font del sito personale sono nominati per primi nello stack: se sono
-   installati sul dispositivo vengono usati, altrimenti si ricade sui font di
-   sistema senza che nulla si rompa.
+/* The preferred fonts are named first in the stack: if they are installed
+   on the device they get used, otherwise we fall back to system fonts and
+   nothing breaks.
 
-   Per averli davvero (anche offline, senza dipendere da Google Fonts che
-   romperebbe la PWA e aggiungerebbe una richiesta esterna a un progetto
-   self-hosted): scaricare i .woff2 da fonts.google.com in
-   app/static/fonts/ e togliere il commento qui sotto.
+   To ship them for real (offline too, without depending on Google Fonts,
+   which would break the PWA and add an external request to a self-hosted
+   project): download the .woff2 files from fonts.google.com into
+   app/static/fonts/ and uncomment the block below.
 
 @font-face {
   font-family: "Space Grotesk";
@@ -39,7 +39,7 @@
 */
 
 :root {
-  --bg: #080c10;          /* quasi nero, freddo */
+  --bg: #080c10;          /* near-black, cold */
   --bg-soft: #0f161c;
   --surface: rgba(19, 28, 35, 0.72);
   --surface-solid: #121a21;
@@ -49,11 +49,11 @@
   --border: rgba(72, 116, 128, 0.26);
   --border-strong: rgba(33, 212, 180, 0.38);
 
-  --accent: #21d4b4;      /* verde acqua */
-  --accent-2: #4d8dff;    /* blu */
-  --pos: #45e07a;         /* verde entrate, più erba del verde acqua
-                             per non confondersi con l'accento */
-  --neg: #ff6b5a;         /* corallo: complementare del verde acqua */
+  --accent: #21d4b4;      /* aqua green */
+  --accent-2: #4d8dff;    /* blue */
+  --pos: #45e07a;         /* income green, grassier than the aqua so it is
+                             not confused with the accent colour */
+  --neg: #ff6b5a;         /* coral: complementary to the aqua green */
 
   --radius: 18px;
   --radius-sm: 12px;
@@ -63,9 +63,9 @@
   --glow-pos: 0 0 18px rgba(69, 224, 122, 0.35);
 
   --font: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  /* I numeri NON usano un font da codice: resta lo stesso carattere del
-     testo, con le cifre a larghezza fissa (`tabular-nums`). Le colonne di
-     importi si allineano lo stesso, ma senza l'aria da terminale. */
+  /* Numbers do NOT use a code font: same typeface as the body text, with
+     fixed-width digits (`tabular-nums`). Columns of amounts still line up,
+     without the terminal look. */
   --num: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
@@ -87,7 +87,7 @@ body {
 
 h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
 
-/* --------------------------------------------------------------- sfondo */
+/* ----------------------------------------------------------- background */
 
 .bg-grid {
   position: fixed;
@@ -171,7 +171,7 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
   margin-bottom: 14px;
   animation: rise .32s ease both;
 }
-/* filo di luce sul bordo superiore: dà spessore senza aggiungere rumore */
+/* thread of light along the top edge: adds depth without adding noise */
 .card::before {
   content: "";
   position: absolute;
@@ -214,7 +214,7 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
 .muted { color: var(--text-dim); font-size: .8rem; }
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* --------------------------------------------------------------- totali */
+/* --------------------------------------------------------------- totals */
 
 .totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
 .total-box {
@@ -244,9 +244,9 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
   font-weight: 650;
   letter-spacing: -0.03em;
 }
-/* Il saldo è il numero protagonista, ma si distingue per **peso**, non con un
-   bagliore: quando è negativo un alone rosso sembra un allarme invece di un
-   dato, e sposta l'attenzione su una cosa che spesso è normalissima. */
+/* The balance is the headline number, but it stands out through **weight**,
+   not a glow: when negative, a red halo reads as an alarm rather than data,
+   and draws attention to something that is often perfectly normal. */
 .total-box:last-child .value { font-size: 1.1rem; font-weight: 700; }
 
 .total-delta { font-size: .64rem; margin-top: 3px; font-weight: 700; letter-spacing: .02em; }
@@ -256,7 +256,7 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
 .mini-delta.up { color: var(--neg); }
 .mini-delta.down { color: var(--pos); }
 
-/* --------------------------------------------------------------- barre */
+/* ----------------------------------------------------------------- bars */
 
 .bar-row { margin-bottom: 13px; }
 .bar-track {
@@ -279,11 +279,11 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
 .bar-row.clickable:hover { background: rgba(33, 212, 180, 0.06); }
 .bar-row.clickable:active { opacity: .6; }
 
-/* -------------------------------------------------------------- grafici */
+/* --------------------------------------------------------------- charts */
 
-/* `overflow: visible` è obbligatorio: un SVG ritaglia i filtri al proprio
-   riquadro, quindi il bagliore della fetta selezionata veniva tagliato di
-   netto e si vedeva un bordo quadrato attorno al grafico. */
+/* `overflow: visible` is required: an SVG clips filters to its own box, so
+   the glow on the selected slice was cut off dead straight and a square
+   edge appeared around the chart. */
 .donut {
   display: block;
   width: 200px;
@@ -303,11 +303,10 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
   cursor: pointer;
   transition: stroke-width .18s cubic-bezier(.2,.8,.3,1), opacity .18s;
 }
-/* L'evidenziazione è gestita dal JavaScript, non da `:hover`: sul telefono
-   il passaggio del cursore non esiste, e una regola CSS lascerebbe il
-   grafico morto al tocco. Si agisce per contrasto (le altre fette
-   sbiadiscono) invece che con un alone: più leggibile e senza regioni di
-   filtro da ritagliare. */
+/* Highlighting is handled in JavaScript, not with `:hover`: there is no
+   hover on a phone, and a CSS rule would leave the chart dead to touch. It
+   works by contrast (the other slices fade) rather than with a halo: more
+   readable, and no filter regions to clip. */
 
 .chart-wrap { position: relative; }
 
@@ -321,8 +320,8 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
   padding-bottom: 4px;
   scrollbar-width: thin;
 }
-/* `max-width` è quello che conta: con due soli mesi le colonne si
-   allargherebbero in due lastroni larghi mezza schermata. */
+/* `max-width` is the part that matters: with only two months the columns
+   would stretch into two slabs half a screen wide. */
 .monthcol {
   flex: 1 1 30px;
   max-width: 54px;
@@ -368,7 +367,7 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
 @keyframes growY { from { height: 0 !important; } }
 .monthlabel { font-size: .6rem; color: var(--text-dim); margin-top: 6px; white-space: nowrap; font-family: var(--num); }
 
-/* ------------------------------------------------------- lista movimenti */
+/* ------------------------------------------------------ transaction list */
 
 .tx {
   display: flex;
@@ -411,7 +410,7 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
   animation: rise .25s ease both;
 }
 
-/* ------------------------------------------------------------ controlli */
+/* -------------------------------------------------------------- controls */
 
 button, .btn {
   font: inherit;
@@ -518,7 +517,7 @@ table.preview td { padding: 7px 4px; border-top: 1px solid var(--border); }
 table.preview tr.dup { opacity: .38; }
 .scroll-x { overflow-x: auto; }
 
-/* ------------------------------------------------------- barra filtri */
+/* ------------------------------------------------------------ filter bar */
 
 .filterbar {
   background: var(--surface);
@@ -549,7 +548,7 @@ table.preview tr.dup { opacity: .38; }
 .filter-panel { padding: 0 15px 15px; border-top: 1px solid var(--border); }
 .filter-panel label:first-child { margin-top: 13px; }
 
-/* --------------------------------------------------------------- tabbar */
+/* --------------------------------------------------------------- tab bar */
 
 .tabbar {
   position: fixed;
@@ -578,7 +577,7 @@ table.preview tr.dup { opacity: .38; }
   transition: color .18s;
 }
 .tabbar a.active { color: var(--accent); }
-/* filo luminoso sopra la tab attiva */
+/* glowing thread above the active tab */
 .tabbar a.active::before {
   content: "";
   position: absolute;
@@ -619,10 +618,10 @@ table.preview tr.dup { opacity: .38; }
 }
 .toast.error { border-color: var(--neg); box-shadow: 0 8px 32px rgba(0,0,0,.5), 0 0 20px rgba(255,107,90,.35); }
 
-/* ---------------------------------------------------------------- accesso */
+/* ------------------------------------------------------------------ login */
 
-/* Finché non si è dentro, barra e navigazione spariscono: mostrare le schede
-   a chi non è autenticato significherebbe solo farle fallire tutte. */
+/* Until you are signed in, the top bar and navigation disappear: showing the
+   tabs to someone who is not authenticated would only make them all fail. */
 body.locked .topbar,
 body.locked .tabbar,
 body.locked .view { display: none; }
@@ -681,8 +680,8 @@ body.locked { padding-bottom: 0; }
   .total-box .value { font-size: 1.15rem; }
 }
 
-/* Chi ha chiesto meno animazioni non deve subirle: è una preferenza di
-   accessibilità, non un vezzo. */
+/* Anyone who asked for fewer animations should not get them: this is an
+   accessibility preference, not a flourish. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: .01ms !important;

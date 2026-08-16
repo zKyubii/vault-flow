@@ -1,4 +1,4 @@
-import { api } from "../api.js";
+﻿import { api } from "../api.js";
 import { clear, el, empty, money, spinner, toast } from "../ui.js";
 
 let categories = [];
@@ -32,7 +32,7 @@ export async function render(root) {
 
   const reload = () => render(clear(root));
 
-  // --- nuova regola ---
+  // --- new rule ---
   const patternInput = el("input", { type: "text", placeholder: "e.g. spotify" });
   const catSelect = el("select", {}, categoryOptions(null));
   const matchSelect = el("select", {}, [
@@ -72,7 +72,7 @@ export async function render(root) {
     createBtn,
   ]);
 
-  // --- applica ---
+  // --- apply ---
   const applyBox = el("div");
   const dryBtn = el("button", { text: "Dry run" });
   const applyBtn = el("button", { class: "primary", text: "Apply" });
@@ -120,7 +120,7 @@ export async function render(root) {
     applyBox,
   ]);
 
-  // --- giroconti rilevati ---
+  // --- detected transfers ---
   const transfersBox = el("div");
   const transfersCard = el("div", { class: "card" }, [
     el("h2", { text: "Detected transfers" }),
@@ -135,7 +135,7 @@ export async function render(root) {
         clear(transfersBox).append(spinner("Scanning…"));
         try {
           const pairs = await api.detectTransfers({ window_days: 5 });
-          const daMarcare = pairs.filter((p) => !p.already_marked);
+          const toMark = pairs.filter((p) => !p.already_marked);
           clear(transfersBox);
 
           if (!pairs.length) {
@@ -145,11 +145,11 @@ export async function render(root) {
 
           transfersBox.append(
             el("div", { class: "muted", style: "margin:10px 0 6px" }, [
-              `${pairs.length} pairs · ${daMarcare.length} not yet marked`,
+              `${pairs.length} pairs · ${toMark.length} not yet marked`,
             ])
           );
 
-          for (const pair of daMarcare.length ? daMarcare : pairs.slice(0, 8)) {
+          for (const pair of toMark.length ? toMark : pairs.slice(0, 8)) {
             transfersBox.append(
               el("div", { class: "row", style: "padding:8px 0;border-top:1px solid var(--border)" }, [
                 el("div", { class: "stack" }, [
@@ -168,7 +168,7 @@ export async function render(root) {
             );
           }
 
-          if (daMarcare.length) {
+          if (toMark.length) {
             transfersBox.append(
               el("div", { class: "muted", style: "margin-top:10px;color:var(--neg);font-size:.78rem" }, [
                 "Check the descriptions before applying: two transactions of the same amount a few days apart can be a coincidence, not a transfer.",
@@ -176,18 +176,18 @@ export async function render(root) {
               el("button", {
                 class: "primary",
                 style: "width:100%;margin-top:10px",
-                text: `Mark ${daMarcare.length} pairs as transfers`,
+                text: `Mark ${toMark.length} pairs as transfers`,
                 onclick: async () => {
-                  // Si cerca per **comportamento**, non per nome: la categoria
-                  // può chiamarsi in qualsiasi lingua o essere stata rinominata
-                  // dall'utente. Quello che conta è che sia esclusa dai totali.
+                  // Matched by **behaviour**, not by name: the category can be
+                  // in any language or renamed by the user. What matters is
+                  // that it is excluded from the totals.
                   const transferCat =
                     categories.find((c) => c.exclude_from_stats && /transfer|girocont/i.test(c.name)) ||
                     categories.find((c) => c.exclude_from_stats);
                   if (!transferCat) {
                     return toast("No category excluded from statistics found", true);
                   }
-                  const ids = daMarcare.flatMap((p) => [p.out.id, p.in.id]);
+                  const ids = toMark.flatMap((p) => [p.out.id, p.in.id]);
                   try {
                     const result = await api.applyTransfers({
                       category_id: transferCat.id,
@@ -211,7 +211,7 @@ export async function render(root) {
     transfersBox,
   ]);
 
-  // --- suggerimenti ---
+  // --- suggestions ---
   const suggestionsCard = el("div", { class: "card" }, [
     el("h2", { text: "Recurring and uncategorised" }),
     el("div", { class: "muted", style: "margin-bottom:8px" }, [
@@ -245,7 +245,7 @@ export async function render(root) {
       : [empty("Everything is categorised")]),
   ]);
 
-  // --- elenco regole ---
+  // --- rule list ---
   const rulesCard = el("div", { class: "card" }, [
     el("h2", { text: `Active rules (${rules.length})` }),
     ...(rules.length

@@ -1,5 +1,7 @@
-// Utilità condivise: formattazione e costruzione DOM.
+// Shared helpers: formatting and DOM building.
 
+// Numbers and dates follow the DEVICE locale, not the interface language:
+// an Italian user sees 1.234,56 € even though the UI is in English.
 const eurFormatter = new Intl.NumberFormat(undefined, {
   style: "currency",
   currency: "EUR",
@@ -30,9 +32,9 @@ export const monthLabel = (ym) => {
   return `${names[Number(m) - 1]} ${y.slice(2)}`;
 };
 
-// Costruttore di elementi. `text` è sempre trattato come testo, mai come
-// HTML: le descrizioni arrivano dagli estratti conto della banca e non
-// devono poter iniettare markup.
+// Element builder. `text` is always treated as text, never as HTML:
+// descriptions come from bank statements and must not be able to inject
+// markup.
 export function el(tag, attrs = {}, children = []) {
   const node = document.createElement(tag);
   for (const [key, value] of Object.entries(attrs)) {

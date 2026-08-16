@@ -1,4 +1,4 @@
-"""Conti e categorie."""
+"""Accounts and categories."""
 
 from decimal import Decimal
 
@@ -19,7 +19,7 @@ from app.schemas import (
     Message,
 )
 
-router = APIRouter(tags=["conti"])
+router = APIRouter(tags=["accounts"])
 
 
 @router.get("/accounts", response_model=list[AccountWithBalance])
@@ -113,12 +113,12 @@ def update_account(account_id: int, payload: AccountUpdate, db: Session = Depend
 
 @router.delete("/accounts/{account_id}", response_model=Message)
 def delete_account(account_id: int, db: Session = Depends(get_db)):
-    """Elimina un conto **e tutti i suoi movimenti** (FK ON DELETE CASCADE).
+    """Deletes an account **and all its transactions** (FK ON DELETE CASCADE).
 
-    È distruttivo e non si torna indietro: la risposta dice quante transazioni
-    sono state rimosse, e l'interfaccia deve chiedere conferma mostrando il
-    numero *prima* di chiamare qui. Per far solo sparire un conto dagli
-    elenchi senza perdere niente esiste `archived`.
+    This is destructive and cannot be undone: the response says how many
+    transactions were removed, and the interface must ask for confirmation
+    showing that number *before* calling here. To simply hide an account from
+    the lists without losing anything there is `archived`.
     """
     account = db.get(Account, account_id)
     if not account:
@@ -184,8 +184,8 @@ def update_category(category_id: int, payload: CategoryUpdate, db: Session = Dep
 
 @router.delete("/categories/{category_id}", response_model=Message)
 def delete_category(category_id: int, db: Session = Depends(get_db)):
-    """Le transazioni non si perdono: la FK è ON DELETE SET NULL, tornano
-    semplicemente senza categoria."""
+    """Transactions are not lost: the FK is ON DELETE SET NULL, so they simply
+    go back to being uncategorised."""
     category = db.get(Category, category_id)
     if not category:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Category not found")

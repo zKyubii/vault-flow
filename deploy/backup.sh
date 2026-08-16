@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# Backup del database.
+# Database backup.
 #
-# Un'app di spese senza backup è un'app che un giorno ti fa ricominciare da
-# capo: lo storico bancario oltre una certa data non lo riscarichi più,
-# perché le banche limitano la finestra di export.
+# An expense app without backups is an app that one day makes you start over:
+# bank history beyond a certain date cannot be downloaded again, because banks
+# cap the export window.
 #
-# Uso:
-#   ./deploy/backup.sh                      -> ./backups/spese-AAAA-MM-GG.sql.gz
-#   ./deploy/backup.sh /percorso/cartella
+# Usage:
+#   ./deploy/backup.sh                  -> ./backups/vaultflow-YYYY-MM-DD.sql.gz
+#   ./deploy/backup.sh /some/directory
 #
-# Per farlo ogni notte alle 3, in crontab -e:
-#   0 3 * * * cd /percorso/dashboard-spese && ./deploy/backup.sh >> /var/log/spese-backup.log 2>&1
+# To run it nightly at 3am, in `crontab -e`:
+#   0 3 * * * cd /path/to/vault-flow && ./deploy/backup.sh >> /var/log/vault-flow-backup.log 2>&1
 
 set -euo pipefail
 
@@ -23,44 +23,45 @@ KEEP_DAYS=30
 set -a; source .env; set +a
 
 mkdir -p "$DEST"
-FILE="$DEST/spese-$(date +%Y-%m-%d).sql.gz"
+FILE="$DEST/vaultflow-$(date +%Y-%m-%d).sql.gz"
 
-# --single-transaction: dump coerente senza bloccare le scritture
+# --single-transaction: a consistent dump without blocking writes
 docker compose exec -T db mysqldump \
     --single-transaction \
     --routines \
     -u root -p"$MYSQL_ROOT_PASSWORD" \
     "$MYSQL_DATABASE" | gzip > "$FILE"
 
-# Un backup vuoto è peggio di nessun backup: sembra fatto, e te ne accorgi
-# solo il giorno in cui provi a ripristinarlo. Capita davvero — se Docker non
-# sta girando, mysqldump non scrive niente e `| gzip` produce comunque un file
-# valido di ~20 byte.
+# An empty backup is worse than no backup: it looks done, and you only find
+# out the day you try to restore it. It really happens — if Docker is not
+# running, mysqldump writes nothing and `| gzip` still produces a valid file
+# of about 20 bytes.
 SIZE=$(wc -c < "$FILE")
 if [ "$SIZE" -lt 1000 ]; then
     rm -f "$FILE"
-    echo "ERRORE: il dump è risultato vuoto ($SIZE byte). File rimosso." >&2
-    echo "Controlla che i container siano in esecuzione: docker compose ps" >&2
+    echo "ERROR: the dump came out empty ($SIZE bytes). File removed." >&2
+    echo "Check that the containers are running: docker compose ps" >&2
     exit 1
 fi
 
-# `grep -c` e non `grep -q`: il secondo si ferma al primo risultato, gunzip
-# riceve SIGPIPE e con `pipefail` l'intera pipeline risulta fallita anche
-# quando la tabella c'era — cancellando un backup buono.
-# `|| true` perché grep esce con 1 quando non trova nulla, e `set -e`
-# interromperebbe lo script prima del controllo vero.
+# `grep -c`, not `grep -q`: the latter stops at the first match, gunzip gets
+# SIGPIPE and with `pipefail` the whole pipeline counts as failed — deleting a
+# perfectly good backup.
+# `|| true` because grep exits 1 when it finds nothing, and `set -e` would
+# abort before the real check below.
 TABLES=$(gunzip -c "$FILE" | grep -c "CREATE TABLE" || true)
 if [ "${TABLES:-0}" -lt 1 ]; then
     rm -f "$FILE"
-    echo "ERRORE: il dump non contiene nessuna tabella. File rimosso." >&2
+    echo "ERROR: the dump contains no tables. File removed." >&2
     exit 1
 fi
-echo "Backup salvato: $FILE ($(du -h "$FILE" | cut -f1), $TABLES tabelle)"
 
-# I backup vecchi si cancellano da soli, altrimenti in un anno riempiono il disco
-find "$DEST" -name 'spese-*.sql.gz' -mtime +"$KEEP_DAYS" -delete
-echo "Rimossi i backup più vecchi di $KEEP_DAYS giorni"
+echo "Backup saved: $FILE ($(du -h "$FILE" | cut -f1), $TABLES tables)"
 
-# Ripristino:
-#   gunzip < backups/spese-2026-08-16.sql.gz | \
+# Old backups delete themselves, otherwise they fill the disk within a year
+find "$DEST" -name 'vaultflow-*.sql.gz' -mtime +"$KEEP_DAYS" -delete
+echo "Removed backups older than $KEEP_DAYS days"
+
+# Restore:
+#   gunzip < backups/vaultflow-2026-08-16.sql.gz | \
 #     docker compose exec -T db mysql -u root -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"

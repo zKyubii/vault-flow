@@ -1,4 +1,4 @@
-"""Profili di import e pipeline: ispeziona → anteprima → salva → annulla."""
+"""Import profiles and pipeline: inspect → preview → commit → undo."""
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import select
@@ -58,7 +58,7 @@ def _get_account(db: Session, account_id: int) -> Account:
     return account
 
 
-# ------------------------------------------------------------------ profili
+# ---------------------------------------------------------------- profiles
 
 
 @router.get("/import-profiles", response_model=list[ImportProfileOut])
@@ -100,21 +100,21 @@ def delete_profile(profile_id: int, db: Session = Depends(get_db)):
     return Message(detail="Profile deleted")
 
 
-# ---------------------------------------------------------------- ispezione
+# ------------------------------------------------------------------ inspect
 
 
 @router.post("/imports/inspect", response_model=InspectResponse)
 async def inspect(file: UploadFile = File(...), max_lines: int = 40):
-    """Mostra il file com'è davvero: righe numerate, delimitatore, encoding.
+    """Shows the file as it really is: numbered lines, delimiter, encoding.
 
-    Senza questo è impossibile indovinare `skip_rows` su un file con
-    preambolo — l'export Revolut ne ha 62 righe prima dell'intestazione vera.
+    Without this there is no way to guess `skip_rows` on a file with a
+    preamble — some statements carry 62 rows before the real header.
     """
     data = await _read_upload(file)
     return InspectResponse(**inspect_file(data, max_lines=max_lines))
 
 
-# ---------------------------------------------------------------- anteprima
+# ------------------------------------------------------------------ preview
 
 
 @router.post("/imports/preview", response_model=PreviewResponse)
@@ -125,10 +125,10 @@ async def preview(
     limit: int = Form(50),
     db: Session = Depends(get_db),
 ):
-    """Interpreta il file e mostra il risultato SENZA scrivere nulla.
+    """Parses the file and shows the result WITHOUT writing anything.
 
-    Indica anche quali righe risulterebbero duplicate rispetto a quanto già
-    presente: reimportare intervalli sovrapposti è il flusso normale.
+    It also flags which rows would be duplicates of what is already stored:
+    re-importing overlapping ranges is the normal flow.
     """
     data = await _read_upload(file)
     profile = _get_profile(db, profile_id)
@@ -160,7 +160,7 @@ async def preview(
     )
 
 
-# ----------------------------------------------------------------- scrittura
+# ------------------------------------------------------------------- commit
 
 
 @router.post("/imports/commit", response_model=ImportRunOut, status_code=status.HTTP_201_CREATED)

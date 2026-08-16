@@ -12,16 +12,16 @@ import { clear, el, empty, formatDayHeading, money, signClass, spinner, toast } 
 let search = "";
 
 /**
- * Dopo aver messo una categoria a mano, propone di estenderla ai movimenti
- * simili. È così che nascono le regole: dal gesto che stai già facendo, non
- * da una schermata separata dove scrivere pattern a mano.
+ * After setting a category by hand, offer to extend it to similar
+ * transactions. This is how rules are born: from the gesture you are
+ * already making, not from a separate screen for writing patterns.
  */
 async function offerRule(transaction, categoryId, container, onDone) {
   let info;
   try {
     info = await api.similar(transaction.id);
   } catch {
-    return; // se il conteggio fallisce si resta con la sola categoria salvata
+    return; // if counting fails we keep just the saved category
   }
   if (!info.others) return;
 
@@ -186,9 +186,9 @@ export async function render(root) {
         return;
       }
 
-      // La somma è quella delle righe effettivamente caricate. Se l'elenco è
-      // troncato va detto: presentarla come "il totale" sarebbe un numero
-      // sbagliato messo accanto a uno giusto.
+      // The sum covers the rows actually loaded. If the list is truncated we
+      // say so: presenting it as "the total" would put a wrong number right
+      // next to a correct one.
       const truncated = page.total > page.items.length;
       const shown = page.items.reduce((sum, t) => sum + Number(t.amount), 0);
       listBox.append(

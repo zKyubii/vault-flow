@@ -1,11 +1,11 @@
-"""Runner di migrazioni minimale.
+"""Minimal migration runner.
 
-Perché non Alembic: lo schema è scritto a mano con vincoli specifici (UNIQUE
-compositi, ENUM, colonne JSON) che l'autogenerate di Alembic tende a
-reinterpretare male. Qui i file .sql sono la verità, vengono applicati in
-ordine una sola volta, e la tabella `schema_migrations` tiene il conto.
+Why not Alembic: the schema is written by hand with specific constraints
+(composite UNIQUE keys, ENUMs, JSON columns) that Alembic's autogenerate
+tends to reinterpret badly. Here the .sql files are the source of truth, they
+are applied once each in order, and the `schema_migrations` table keeps count.
 
-Aggiungere una migrazione = creare `db/migrations/00N_nome.sql`. Fine.
+Adding a migration = create `db/migrations/00N_name.sql`. That is all.
 """
 
 import logging
@@ -23,24 +23,24 @@ MIGRATIONS_DIR = Path(__file__).resolve().parent.parent / "db" / "migrations"
 
 
 def wait_for_db(max_attempts: int = 30, delay: float = 2.0) -> None:
-    """Il container app può partire prima che MySQL accetti connessioni."""
+    """The app container can start before MySQL accepts connections."""
     for attempt in range(1, max_attempts + 1):
         try:
             with engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
-            log.info("Database raggiungibile.")
+            log.info("Database reachable.")
             return
         except OperationalError as exc:
             if attempt == max_attempts:
                 raise RuntimeError(
-                    f"Database irraggiungibile dopo {max_attempts} tentativi"
+                    f"Database unreachable after {max_attempts} attempts"
                 ) from exc
-            log.warning("Database non pronto (tentativo %s), riprovo...", attempt)
+            log.warning("Database not ready (attempt %s), retrying...", attempt)
             time.sleep(delay)
 
 
 def _split_statements(sql: str) -> list[str]:
-    """Divide su ';' ignorando quelli dentro stringhe o commenti."""
+    """Split on ';' while ignoring the ones inside strings or comments."""
     statements: list[str] = []
     buf: list[str] = []
     quote: str | None = None
@@ -55,7 +55,7 @@ def _split_statements(sql: str) -> list[str]:
 
         if quote:
             buf.append(ch)
-            # backslash-escape: salta il carattere successivo
+            # backslash escape: skip the next character
             if ch == "\\":
                 continue
             if ch == quote:
@@ -105,11 +105,11 @@ def _applied_versions(conn) -> set[str]:
 
 def run_migrations() -> None:
     if not MIGRATIONS_DIR.is_dir():
-        raise RuntimeError(f"Cartella migrazioni non trovata: {MIGRATIONS_DIR}")
+        raise RuntimeError(f"Migrations directory not found: {MIGRATIONS_DIR}")
 
     files = sorted(MIGRATIONS_DIR.glob("*.sql"))
     if not files:
-        log.warning("Nessuna migrazione trovata in %s", MIGRATIONS_DIR)
+        log.warning("No migrations found in %s", MIGRATIONS_DIR)
         return
 
     with engine.begin() as conn:
@@ -120,13 +120,13 @@ def run_migrations() -> None:
         if version in applied:
             continue
 
-        log.info("Applico migrazione %s", version)
+        log.info("Applying migration %s", version)
         sql = path.read_text(encoding="utf-8")
 
-        # Una transazione per migrazione: se una statement fallisce, l'intera
-        # migrazione non viene registrata. (Nota: MySQL fa commit implicito
-        # sui DDL, quindi il rollback copre solo i dati — motivo in più per
-        # tenere schema e seed in file separati.)
+        # One transaction per migration: if a statement fails, the migration
+        # is not recorded. (Note: MySQL commits implicitly on DDL, so the
+        # rollback only covers data — one more reason to keep schema and seed
+        # in separate files.)
         with engine.begin() as conn:
             for stmt in _split_statements(sql):
                 conn.execute(text(stmt))
@@ -135,4 +135,4 @@ def run_migrations() -> None:
                 {"v": version},
             )
 
-        log.info("Migrazione %s applicata.", version)
+        log.info("Migration %s applied.", version)

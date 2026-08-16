@@ -1,12 +1,12 @@
-"""Parser CSV generico, guidato da un profilo di mappatura.
+"""Generic CSV parser, driven by a mapping profile.
 
-Nessun parser dedicato per singola banca: le banche cambiano formato e i
-parser su misura si rompono. Qui la mappatura è dati (`ParseProfile`), non
-codice, e l'utente la costruisce dall'interfaccia.
+No per-bank parsers: banks change their formats and bespoke parsers break.
+Here the mapping is data (`ParseProfile`), not code, and the user builds it
+from the interface.
 
-Questo modulo **non importa nulla del database** di proposito: è logica pura,
-testabile su un file senza container, e riutilizzabile per l'anteprima prima
-di scrivere qualsiasi cosa.
+This module deliberately **imports nothing from the database layer**: it is
+pure logic, testable against a file without a container, and reusable for the
+preview before anything is written.
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ _HAS_DIGIT = re.compile(r"\d")
 
 @dataclass(slots=True)
 class ParseProfile:
-    """Come leggere un file. Rispecchia la tabella `import_profiles`."""
+    """How to read a file. Mirrors the `import_profiles` table."""
 
     col_date: str
     col_description: str
@@ -40,8 +40,8 @@ class ParseProfile:
     decimal_separator: str = ","
     thousands_separator: str | None = None
 
-    # 'signed'   -> una colonna con il segno
-    # 'separate' -> due colonne, entrate e uscite (molte banche italiane)
+    # 'signed'   -> a single column carrying the sign
+    # 'separate' -> two columns, money in and money out (common in Italy)
     amount_mode: str = "signed"
     col_amount: str | None = None
     col_amount_in: str | None = None
@@ -50,9 +50,9 @@ class ParseProfile:
     col_counterparty: str | None = None
     col_external_id: str | None = None
     col_mcc: str | None = None
-    # Attenzione: da configurare SOLO se la banca tiene fee/tax fuori
-    # dall'importo (Trade Republic sì, Revolut no — lì la commissione è
-    # già dentro il movimento e sommarla conterebbe due volte).
+    # Careful: only configure these if the bank keeps fees and taxes OUTSIDE
+    # the amount. Some do; others already fold the fee into the transaction,
+    # and adding it would count it twice.
     col_fee: str | None = None
     col_tax: str | None = None
     col_currency: str | None = None
@@ -99,20 +99,20 @@ class ParseResult:
 
 
 # --------------------------------------------------------------------------
-# lettura grezza
+# raw reading
 # --------------------------------------------------------------------------
 
 
 def _decode(data: bytes, encoding: str) -> str:
     enc = (encoding or "utf-8").strip().lower()
-    # utf-8-sig toglie il BOM che Excel mette in testa ai file salvati da lui
+    # utf-8-sig strips the BOM that Excel puts at the start of files it saves
     if enc in {"utf-8", "utf8"}:
         enc = "utf-8-sig"
     return data.decode(enc, errors="replace")
 
 
 def _iter_rows(text: str, profile: ParseProfile) -> Iterator[tuple[int, dict]]:
-    """Righe come dizionari. Senza intestazione le chiavi sono '0', '1', ..."""
+    """Rows as dictionaries. Without a header the keys are '0', '1', ..."""
     lines = text.splitlines(keepends=True)
     if profile.skip_rows:
         lines = lines[profile.skip_rows :]
@@ -120,7 +120,7 @@ def _iter_rows(text: str, profile: ParseProfile) -> Iterator[tuple[int, dict]]:
 
     if profile.has_header:
         reader = csv.DictReader(buf, delimiter=profile.delimiter, restkey="__extra__")
-        first_data_line = profile.skip_rows + 2  # 1-based, +1 per l'intestazione
+        first_data_line = profile.skip_rows + 2  # 1-based, +1 for the header
         for i, row in enumerate(reader):
             yield first_data_line + i, {(k or ""): v for k, v in row.items()}
     else:
@@ -131,7 +131,7 @@ def _iter_rows(text: str, profile: ParseProfile) -> Iterator[tuple[int, dict]]:
 
 
 def _get(row: dict, key: str | None) -> Any:
-    """Legge per nome di colonna; se non esiste, prova come indice numerico."""
+    """Reads by column name; if that fails, tries the key as an index."""
     if key is None or key == "":
         return None
     if key in row:
@@ -145,22 +145,22 @@ def _get(row: dict, key: str | None) -> Any:
 
 
 # --------------------------------------------------------------------------
-# conversioni
+# conversions
 # --------------------------------------------------------------------------
 
 
 def parse_amount(value: Any, profile: ParseProfile) -> Decimal:
-    """Interpreta un importo.
+    """Parses an amount.
 
-    Regge i casi visti nei file veri:
-      "139.000000"   Trade Republic
-      "-€19.41"      Revolut, segno PRIMA del simbolo
-      "€1,035.60"    separatore delle migliaia
-      "(12,34)"      notazione contabile per i negativi
-      "19,41-"       segno in coda
+    Handles the cases seen in real files:
+      "139.000000"   six decimal places
+      "-€19.41"      sign BEFORE the currency symbol
+      "€1,035.60"    thousands separator
+      "(12,34)"      accounting notation for negatives
+      "19,41-"       trailing sign
     """
     if value is None:
-        raise ValueError("importo mancante")
+        raise ValueError("missing amount")
     s = str(value).strip()
     if not s:
         return Decimal("0")
@@ -183,7 +183,7 @@ def parse_amount(value: Any, profile: ParseProfile) -> Decimal:
         s = s.replace(ch, "")
     s = s.replace("\xa0", "").replace(" ", "")
 
-    # il segno poteva stare anche DOPO il simbolo: "€-19.41"
+    # the sign could also sit AFTER the symbol: "€-19.41"
     if s.startswith("-"):
         negative = True
         s = s[1:]
@@ -195,12 +195,12 @@ def parse_amount(value: Any, profile: ParseProfile) -> Decimal:
 
     s = re.sub(r"[^0-9.]", "", s)
     if not s or not _HAS_DIGIT.search(s):
-        raise ValueError(f"importo non interpretabile: {value!r}")
+        raise ValueError(f"cannot parse amount: {value!r}")
 
     try:
         amount = Decimal(s)
     except InvalidOperation:
-        raise ValueError(f"importo non interpretabile: {value!r}") from None
+        raise ValueError(f"cannot parse amount: {value!r}") from None
 
     return -amount if negative else amount
 
@@ -208,17 +208,17 @@ def parse_amount(value: Any, profile: ParseProfile) -> Decimal:
 def parse_date(value: Any, profile: ParseProfile) -> date:
     s = str(value or "").strip()
     if not s:
-        raise ValueError("data mancante")
+        raise ValueError("missing date")
     try:
         return datetime.strptime(s, profile.date_format).date()
     except ValueError:
         pass
-    # molte sorgenti affiancano un timestamp ISO completo
+    # many sources also carry a full ISO timestamp
     try:
         return datetime.fromisoformat(s.replace("Z", "+00:00")).date()
     except ValueError:
         raise ValueError(
-            f"data non interpretabile: {value!r} (atteso {profile.date_format})"
+            f"cannot parse date: {value!r} (expected {profile.date_format})"
         ) from None
 
 
@@ -234,12 +234,12 @@ def compute_dedup_hash(
     description: str | None = None,
     occurrence: int = 0,
 ) -> str:
-    """Chiave di deduplica.
+    """De-duplication key.
 
-    Se la banca fornisce un id nativo lo usiamo: è più affidabile di qualsiasi
-    hash calcolato. Altrimenti ricostruiamo una chiave dai campi, includendo
-    il numero di occorrenza nel file — senza, due caffè identici lo stesso
-    giorno collasserebbero in uno solo e perderesti una spesa vera.
+    If the bank provides a native id we use it: it is more reliable than any
+    computed hash. Otherwise we rebuild a key from the fields, including the
+    occurrence number within the file — without it, two identical coffees on
+    the same day would collapse into one and you would lose a real expense.
     """
     if external_id:
         payload = f"ext:{external_id}"
@@ -264,9 +264,9 @@ def resolve_amount(row: dict, profile: ParseProfile) -> Decimal:
     if profile.invert_sign:
         amount = -amount
 
-    # Commissioni e imposte tenute fuori dall'importo dalla banca.
-    # Caso reale Trade Republic: riga bollo con amount=0.00 e tax=-8.50.
-    # Senza questo, quegli 8,50 € sparirebbero dai conti.
+    # Fees and taxes some banks keep outside the amount. Real case: a stamp
+    # duty row with amount=0.00 and tax=-8.50. Without this, those 8.50 would
+    # vanish from the books.
     for column in (profile.col_fee, profile.col_tax):
         if not column:
             continue
@@ -283,16 +283,16 @@ def _clean_mcc(value: Any) -> str | None:
 
 
 # --------------------------------------------------------------------------
-# parsing completo
+# full parse
 # --------------------------------------------------------------------------
 
 
 def parse_file(data: bytes, profile: ParseProfile) -> ParseResult:
-    """Interpreta un file intero.
+    """Parses a whole file.
 
-    Non solleva eccezioni sulle righe singole: le raccoglie in `errors`, così
-    l'anteprima può mostrarle all'utente. Sta al chiamante decidere se
-    procedere comunque (`skip_unparsable`) o fermarsi.
+    It does not raise on individual rows: it collects them in `errors`, so the
+    preview can show them to the user. It is up to the caller to decide
+    whether to proceed anyway (`skip_unparsable`) or stop.
     """
     result = ParseResult()
     text = _decode(data, profile.encoding)
@@ -301,7 +301,8 @@ def parse_file(data: bytes, profile: ParseProfile) -> ParseResult:
     for line_no, raw in _iter_rows(text, profile):
         values = [str(v) for v in raw.values() if v is not None]
 
-        # riga di chiusura sezione (Revolut termina i movimenti con "Total")
+        # section-closing row (some statements end the transactions with
+        # a "Total" line)
         if profile.stop_at_value:
             first = values[0].strip() if values else ""
             if first == profile.stop_at_value:
@@ -355,10 +356,10 @@ def parse_file(data: bytes, profile: ParseProfile) -> ParseResult:
     return result
 
 
-# Profili pronti per i formati già analizzati. Servono come esempio e come
-# base per i test: in produzione i profili stanno nel database e li crea
-# l'utente dall'interfaccia.
-PROFILE_TRADE_REPUBLIC = ParseProfile(
+# Ready-made profiles for the formats analysed so far. They serve as examples
+# and as a basis for tests: in production the profiles live in the database
+# and the user creates them from the interface.
+PROFILE_NATIVE_IDS = ParseProfile(
     col_date="date",
     col_description="description",
     date_format="%Y-%m-%d",
@@ -374,7 +375,7 @@ PROFILE_TRADE_REPUBLIC = ParseProfile(
     col_category_hint="type",
 )
 
-PROFILE_REVOLUT = ParseProfile(
+PROFILE_MULTI_SECTION = ParseProfile(
     col_date="Date",
     col_description="Description",
     skip_rows=62,

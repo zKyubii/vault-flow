@@ -1,5 +1,5 @@
-// Router minimale basato su hash. Niente framework: l'app ha cinque
-// schermate e uno stato piccolo, una dipendenza di build sarebbe peso morto.
+// Minimal hash-based router. No framework: the app has five screens and a
+// small amount of state, so a build toolchain would be dead weight.
 
 import { api } from "./api.js";
 import { clear } from "./ui.js";
@@ -51,12 +51,6 @@ async function router() {
 
 window.addEventListener("hashchange", router);
 
-/**
- * Prima di montare qualsiasi vista si chiede al server se siamo dentro.
- * Se il server non risponde (offline) si prova comunque a partire: il
- * service worker può servire i dati già scaricati, ed è esattamente il caso
- * d'uso "consulto le spese senza connessione".
- */
 function mountLogout(displayName) {
   const actions = document.getElementById("page-actions");
   const button = document.createElement("button");
@@ -69,23 +63,28 @@ function mountLogout(displayName) {
     try {
       await api.logout();
     } finally {
-      // anche se la chiamata fallisce si ricarica: il cookie potrebbe già
-      // essere scaduto, e restare su una schermata morta è peggio
+      // Reload even if the call failed: the cookie may already be expired,
+      // and being stuck on a dead screen is worse.
       location.reload();
     }
   });
   actions.replaceChildren(button);
 }
 
+/**
+ * Before mounting any view we ask the server whether we are signed in.
+ * If the server cannot be reached (offline) we start anyway: the service
+ * worker can serve already-downloaded data, which is exactly the
+ * "check my spending without a connection" use case.
+ */
 async function bootstrap() {
   let status = null;
   try {
     status = await api.me();
   } catch (error) {
-    // Una 401 qui non dovrebbe capitare (/auth/me è pubblica), ma se il
-    // server la restituisce comunque la risposta giusta è il login, non una
-    // schermata di errore. Per qualsiasi altro problema (offline) si prova a
-    // partire lo stesso: il service worker può servire i dati già scaricati.
+    // A 401 should not happen here (/auth/me is public), but if the server
+    // returns one anyway the right answer is the login screen, not an error
+    // page. For anything else (offline) we try to start regardless.
     if (error && error.status === 401) {
       showLogin({ password_configured: true });
       return;
@@ -104,15 +103,15 @@ async function bootstrap() {
 
 window.addEventListener("DOMContentLoaded", bootstrap);
 
-// Una sessione scaduta mentre l'app è aperta non deve lasciare schermate
-// vuote senza spiegazione: si torna al login.
-window.addEventListener("spese:unauthorized", () => {
+// A session that expires while the app is open must not leave blank screens
+// with no explanation: we go back to the login.
+window.addEventListener("vaultflow:unauthorized", () => {
   if (document.body.classList.contains("locked")) return;
   document.getElementById("view").replaceChildren();
   showLogin({ password_configured: true });
 });
 
-// --- stato della connessione -----------------------------------------------
+// --- connection state ------------------------------------------------------
 
 const offlineBar = document.getElementById("offline-bar");
 const updateOnlineState = () => (offlineBar.hidden = navigator.onLine);
@@ -124,17 +123,16 @@ updateOnlineState();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    // servito dalla radice: da /static non potrebbe controllare "/"
+    // Served from the root: from /static it could not control "/".
     navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
-      /* senza service worker l'app funziona lo stesso, solo non offline */
+      /* without a service worker the app still works, just not offline */
     });
   });
 
-  // Quando entra in servizio una versione nuova, la scheda aperta sta ancora
-  // eseguendo il codice vecchio: si ricarica una volta sola. Senza questo,
-  // dopo un aggiornamento si resta con JavaScript vecchio contro un'API
-  // cambiata — ed è così che il login, appena introdotto, mostrava
-  // "Autenticazione richiesta" invece della schermata di accesso.
+  // When a new version takes over, the open tab is still running the old
+  // code: reload once. Without this you end up with stale JavaScript against
+  // a changed API — which is how the login screen, right after it was added,
+  // showed "Authentication required" instead of the sign-in form.
   let reloading = false;
   const reloadOnce = () => {
     if (reloading) return;

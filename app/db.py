@@ -1,4 +1,4 @@
-"""Connessione al database."""
+"""Database connection."""
 
 from collections.abc import Iterator
 
@@ -11,12 +11,12 @@ settings = get_settings()
 
 engine = create_engine(
     settings.database_url,
-    # pool_pre_ping: prima di riusare una connessione dal pool la testa.
-    # Senza, la prima query dopo una pausa lunga fallisce con
+    # pool_pre_ping: tests a pooled connection before reusing it. Without it,
+    # the first query after a long idle period fails with
     # "MySQL server has gone away".
     pool_pre_ping=True,
-    # MySQL chiude le connessioni inattive dopo 8 ore (wait_timeout):
-    # le ricicliamo prima noi.
+    # MySQL closes idle connections after 8 hours (wait_timeout): we recycle
+    # them first.
     pool_recycle=3600,
     future=True,
 )
@@ -29,7 +29,7 @@ class Base(DeclarativeBase):
 
 
 def get_db() -> Iterator[Session]:
-    """Dipendenza FastAPI: una sessione per richiesta, chiusa sempre."""
+    """FastAPI dependency: one session per request, always closed."""
     db = SessionLocal()
     try:
         yield db

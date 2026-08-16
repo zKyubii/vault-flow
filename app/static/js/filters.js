@@ -1,16 +1,16 @@
-// Stato dei filtri condiviso fra le schermate.
+// Filter state shared across screens.
 //
-// Un solo stato, non uno per vista: se imposti "solo Revolut, ultimi 3 mesi"
-// nel riepilogo e poi passi ai movimenti, ti aspetti di vedere gli stessi
-// movimenti che compongono quei totali. Averne due separati è il modo più
-// veloce per far perdere fiducia nei numeri.
+// One state, not one per view: if you set "Revolut only, last 3 months" on
+// the summary and then switch to the transaction list, you expect to see the
+// very transactions those totals are made of. Keeping two separate states is
+// the fastest way to make the numbers untrustworthy.
 //
-// Persistito in localStorage: riaprendo l'app ritrovi la tua vista.
+// Persisted in localStorage: reopening the app restores your view.
 
 import { api } from "./api.js";
 import { el, todayISO } from "./ui.js";
 
-const STORAGE_KEY = "spese.filters.v1";
+const STORAGE_KEY = "vaultflow.filters.v1";
 
 const DEFAULTS = {
   period: "month",
@@ -29,9 +29,9 @@ export const PERIODS = [
   { key: "custom", label: "Custom" },
 ];
 
-// Copia profonda: gli array vanno duplicati, altrimenti lo stato condivide
-// l'istanza con DEFAULTS e ogni toggle inquina i valori di partenza — con il
-// risultato che "azzera i filtri" ripristina l'array già sporcato.
+// Deep copy: the arrays must be duplicated, otherwise the state shares the
+// instance with DEFAULTS and every toggle pollutes the starting values — with
+// the result that "clear filters" restores the already-dirty array.
 const freshDefaults = () => ({
   ...DEFAULTS,
   account_ids: [],
@@ -40,7 +40,7 @@ const freshDefaults = () => ({
 
 export const state = load();
 
-// anagrafiche, caricate una volta sola
+// reference data, loaded once
 let accounts = null;
 let categories = null;
 
@@ -62,7 +62,7 @@ function save() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch {
-    /* modalità privata o quota piena: i filtri restano validi per la sessione */
+    /* private mode or quota exceeded: filters still hold for this session */
   }
 }
 
@@ -86,7 +86,7 @@ export function categoryLabel(category) {
   return parent ? `${parent.name} › ${category.name}` : category.name;
 }
 
-/** Intervallo di date corrispondente al periodo scelto. */
+/** Date range matching the selected period. */
 export function dateRange() {
   const now = new Date();
   const iso = (d) => d.toISOString().slice(0, 10);
@@ -105,7 +105,7 @@ export function dateRange() {
   }
 }
 
-/** Parametri pronti per l'API. */
+/** Parameters ready for the API. */
 export function toQuery(extra = {}, { withDates = true } = {}) {
   const query = { ...extra };
   if (withDates) {
@@ -118,12 +118,12 @@ export function toQuery(extra = {}, { withDates = true } = {}) {
 }
 
 /**
- * account_ids e category_ids vanno ripetuti, non uniti da virgole.
+ * account_ids and category_ids must be repeated, not comma-joined.
  *
- * `withDates: false` serve all'andamento mensile: filtrare la storia con il
- * periodo selezionato la ridurrebbe a una colonna sola quando scegli "questo
- * mese", che è l'opposto di ciò che un grafico storico deve mostrare. Conti,
- * categorie e tipo restano applicati.
+ * `withDates: false` is for the monthly trend: filtering history by the
+ * selected period would shrink it to a single column when you pick "this
+ * month", which is the opposite of what a historical chart is for. Accounts,
+ * categories and type still apply.
  */
 export function toSearchParams(extra = {}, options = {}) {
   const params = new URLSearchParams();
@@ -135,7 +135,7 @@ export function toSearchParams(extra = {}, options = {}) {
   return params;
 }
 
-/** Riassunto testuale dei filtri attivi, per la barra chiusa. */
+/** Text summary of the active filters, for the collapsed bar. */
 export function describe() {
   const parts = [PERIODS.find((p) => p.key === state.period)?.label || "Period"];
 
@@ -159,7 +159,7 @@ export function describe() {
   return parts.join(" · ");
 }
 
-/** Aggiunge una categoria ai filtri (usata cliccando la ciambella). */
+/** Adds a category to the filters (used when clicking the donut). */
 export function addCategory(id) {
   if (id === null || id === undefined) return false;
   if (state.category_ids.includes(id)) return false;
@@ -178,8 +178,8 @@ function toggle(list, id) {
 }
 
 /**
- * Barra dei filtri: chiusa mostra il riassunto, aperta il pannello completo.
- * Su un telefono un pannello sempre aperto mangerebbe mezzo schermo.
+ * Filter bar: collapsed it shows the summary, expanded the full panel.
+ * On a phone an always-open panel would eat half the screen.
  */
 export function filterBar(onChange) {
   const wrapper = el("div", { class: "filterbar" });

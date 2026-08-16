@@ -1,4 +1,4 @@
-"""Logica di import: dal profilo salvato alle transazioni sul database."""
+"""Import logic: from the saved profile to rows in the database."""
 
 from __future__ import annotations
 
@@ -12,15 +12,16 @@ from sqlalchemy.orm import Session
 from app.importers.csv_importer import ParseProfile, ParseResult, parse_file
 from app.models import Account, ImportProfile, ImportRun, Transaction
 
-# Ordine dei tentativi di decodifica quando l'utente non sa che encoding ha.
-# cp1252 prima di latin-1: è quello che esce da Excel su Windows.
+# Order in which we try to decode when the user does not know the encoding.
+# cp1252 before latin-1: that is what Excel on Windows produces.
 ENCODING_CANDIDATES = ("utf-8-sig", "utf-8", "cp1252", "latin-1")
 
 
 def to_parse_profile(profile: ImportProfile, default_currency: str = "EUR") -> ParseProfile:
-    """Converte il profilo salvato nel database nella sua versione "pura".
+    """Converts the profile stored in the database into its "pure" form.
 
-    Il parser non conosce SQLAlchemy: questa è l'unica cucitura fra i due.
+    The parser knows nothing about SQLAlchemy: this is the only seam between
+    the two.
     """
     return ParseProfile(
         col_date=profile.col_date,
@@ -52,11 +53,11 @@ def to_parse_profile(profile: ImportProfile, default_currency: str = "EUR") -> P
 
 
 def existing_hashes(db: Session, account_id: int, hashes: list[str]) -> set[str]:
-    """Quali di questi hash sono già nel database per questo conto."""
+    """Which of these hashes are already in the database for this account."""
     if not hashes:
         return set()
     found: set[str] = set()
-    # a blocchi: un IN con migliaia di elementi è una cattiva idea
+    # in chunks: an IN with thousands of elements is a bad idea
     for start in range(0, len(hashes), 500):
         chunk = hashes[start : start + 500]
         rows = db.execute(
@@ -70,11 +71,11 @@ def existing_hashes(db: Session, account_id: int, hashes: list[str]) -> set[str]
 
 
 def inspect_file(data: bytes, max_lines: int = 40) -> dict:
-    """Mostra il file com'è, per aiutare a costruire la mappatura.
+    """Shows the file as it really is, to help build the mapping.
 
-    Serve soprattutto ai file con preambolo (Revolut ne ha 62 righe prima
-    dell'intestazione vera): senza vedere le righe numerate è impossibile
-    indovinare `skip_rows`.
+    It matters most for files with a preamble (some statements have 62 rows
+    before the real header): without seeing numbered lines there is no way to
+    guess `skip_rows`.
     """
     text = None
     encoding_used = "utf-8"
@@ -87,7 +88,7 @@ def inspect_file(data: bytes, max_lines: int = 40) -> dict:
             continue
     if text is None:
         text = data.decode("utf-8", errors="replace")
-        encoding_used = "utf-8 (con sostituzioni)"
+        encoding_used = "utf-8 (with replacements)"
 
     all_lines = text.splitlines()
     sample = all_lines[:max_lines]
@@ -99,8 +100,8 @@ def inspect_file(data: bytes, max_lines: int = 40) -> dict:
     except csv.Error:
         pass
 
-    # L'intestazione è la prima riga con più campi non vuoti: nei file con
-    # preambolo le righe di riepilogo hanno quasi tutte le celle vuote.
+    # The header is the first row with the most non-empty fields: in files
+    # with a preamble the summary rows have nearly every cell empty.
     header_guess = None
     header_line_guess = None
     best_score = 1
@@ -151,11 +152,11 @@ def commit_import(
     data: bytes,
     parse_profile: ParseProfile,
 ) -> ImportRun:
-    """Scrive le transazioni nuove e registra l'operazione.
+    """Writes the new transactions and records the operation.
 
-    Le righe già presenti vengono saltate (non è un errore: reimportare
-    intervalli sovrapposti è il flusso normale). Il vincolo
-    UNIQUE(account_id, dedup_hash) resta come rete di sicurezza.
+    Rows already present are skipped (not an error: re-importing overlapping
+    ranges is the normal flow). The UNIQUE(account_id, dedup_hash) constraint
+    remains as a safety net.
     """
     result = parse_file(data, parse_profile)
 
@@ -186,7 +187,7 @@ def commit_import(
         status="pending",
     )
     db.add(run)
-    db.flush()  # serve l'id per legarci le transazioni
+    db.flush()  # we need the id to attach the transactions to it
 
     already = existing_hashes(db, account.id, [r.dedup_hash for r in result.rows])
 
@@ -210,7 +211,7 @@ def commit_import(
                 raw=row.raw,
             )
         )
-        already.add(row.dedup_hash)  # duplicati interni allo stesso file
+        already.add(row.dedup_hash)  # duplicates within the same file
         imported += 1
 
     run.rows_imported = imported
@@ -225,7 +226,7 @@ def commit_import(
 
 
 def revert_import(db: Session, run: ImportRun) -> int:
-    """Annulla un import: cancella solo le transazioni che ha creato lui."""
+    """Undoes an import: deletes only the transactions it created."""
     deleted = (
         db.query(Transaction).filter(Transaction.import_run_id == run.id).delete(
             synchronize_session=False

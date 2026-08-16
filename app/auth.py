@@ -1,20 +1,20 @@
-﻿"""Autenticazione a password unica.
+"""Single-password authentication.
 
-L'app è single-user e self-hosted: non serve un sistema di utenti, serve una
-porta chiusa. La password sta nel `.env`, la sessione in un **cookie
-httpOnly** firmato.
+The app is single-user and self-hosted: it does not need a user system, it
+needs a locked door. The password lives in `.env`, the session in a signed
+**httpOnly cookie**.
 
-Perché il cookie httpOnly e non un token in localStorage:
-- sopravvive alla chiusura dell'app sul telefono (una PWA che chiede la
-  password ogni volta viene disinstallata dopo due giorni);
-- non è leggibile dal JavaScript, quindi una singola falla XSS non regala la
-  sessione a nessuno;
-- viene inviato da solo con ogni `fetch`, senza codice che se ne ricordi.
+Why an httpOnly cookie and not a token in localStorage:
+- it survives closing the app on a phone (a PWA that asks for the password
+  every time gets uninstalled within two days);
+- it is not readable from JavaScript, so a single XSS hole does not hand the
+  session to anyone;
+- it is sent automatically with every `fetch`, with no code to remember it.
 
-Il segreto di firma **non** sta nel `.env`: viene generato al primo avvio e
-salvato in `settings`. Così le sessioni sopravvivono ai riavvii senza
-chiedere all'utente di configurare un'altra variabile, e cambiare la password
-non invalida i cookie (sono cose diverse).
+The signing secret is **not** in `.env`: it is generated on first boot and
+stored in `settings`. That way sessions survive restarts without asking the
+user to configure another variable, and changing the password does not
+invalidate cookies (they are different things).
 """
 
 from __future__ import annotations
@@ -33,37 +33,35 @@ from app.config import get_settings
 from app.db import get_db
 from app.models import Setting
 
-COOKIE_NAME = "spese_session"
+COOKIE_NAME = "vaultflow_session"
 SESSION_DAYS = 30
 SECRET_KEY_SETTING = "session_secret"
 
-# Password di esempio che non devono mai valere come credenziale: se il file
-# `.env` è rimasto quello di partenza, l'app non deve essere aperta a chiunque
-# conosca il repository.
+# Example passwords that must never count as a credential: if the `.env` file
+# was left as shipped, the app must not be open to anyone who read the
+# repository.
 PLACEHOLDER_PASSWORDS = {"", "cambiami", "cambiami-password-app", "changeme", "password"}
 
-# Freno agli inserimenti a raffica. In memoria: l'app gira in un processo
-# solo, e una tabella per questo sarebbe sovradimensionata.
+# Brake on rapid-fire attempts. Kept in memory: the app runs as a single
+# process, and a table for this would be overkill.
 #
-# ⚠️ Dentro Docker (e ancor più dietro un reverse proxy sulla VPS) le
-# richieste arrivano tutte dallo stesso indirizzo: il blocco è quindi di
-# fatto **globale**, non per singolo visitatore. Su un'app a utente unico è
-# accettabile — l'utente è uno solo — ma significa che un estraneo può
-# chiudere fuori il proprietario a comando.
+# ⚠️ Inside Docker (and even more behind a reverse proxy on a VPS) every
+# request arrives from the same address, so the lockout is effectively
+# **global**, not per visitor. On a single-user app that is acceptable — there
+# is only one user — but it means a stranger can lock the owner out on demand.
 #
-# Per questo la finestra è **corta**: 60 secondi rendono la forza bruta
-# inutile (8 tentativi al minuto su una password decente non arrivano da
-# nessuna parte) senza trasformare un dispetto in mezz'ora di blocco.
-# Se un giorno l'app finisse dietro un proxy, il posto giusto per il limite
-# è il proxy, che l'indirizzo vero ce l'ha.
+# That is why the window is **short**: 60 seconds makes brute force useless
+# (8 attempts a minute against a decent password gets nowhere) without turning
+# a prank into half an hour of lockout. If the app ever sits behind a proxy,
+# the right place for the limit is the proxy, which knows the real address.
 _failures: dict[str, list[float]] = {}
 MAX_ATTEMPTS = 8
-LOCKOUT_WINDOW = 60  # secondi
+LOCKOUT_WINDOW = 60  # seconds
 
 _secret_cache: str | None = None
 
 
-# --------------------------------------------------------------- segreto
+# ---------------------------------------------------------------- secret
 
 
 def get_secret(db: Session) -> str:
@@ -84,7 +82,7 @@ def get_secret(db: Session) -> str:
 
 
 def reset_secret(db: Session) -> str:
-    """Invalida tutte le sessioni attive (usato dal logout globale)."""
+    """Invalidate every active session (used by the global sign-out)."""
     global _secret_cache
     value = secrets.token_urlsafe(48)
     db.merge(Setting(setting_key=SECRET_KEY_SETTING, value=value))
@@ -120,8 +118,8 @@ def verify_token(secret: str, token: str | None) -> bool:
         given = _b64decode(signature)
     except Exception:
         return False
-    # confronto a tempo costante: un `==` lascerebbe dedurre la firma un byte
-    # alla volta misurando i tempi di risposta
+    # constant-time comparison: a plain `==` would let someone recover the
+    # signature one byte at a time by measuring response times
     if not hmac.compare_digest(expected, given):
         return False
 
@@ -146,11 +144,11 @@ def check_password(candidate: str) -> bool:
 
 
 def _client_key(request: Request) -> str:
-    return request.client.host if request.client else "sconosciuto"
+    return request.client.host if request.client else "unknown"
 
 
 def rate_limited(request: Request) -> int:
-    """Secondi di attesa residui, 0 se si può tentare."""
+    """Seconds left to wait, 0 if an attempt is allowed."""
     key = _client_key(request)
     now = time.time()
     attempts = [t for t in _failures.get(key, []) if now - t < LOCKOUT_WINDOW]
@@ -168,18 +166,18 @@ def clear_failures(request: Request) -> None:
     _failures.pop(_client_key(request), None)
 
 
-# ------------------------------------------------------------ dipendenza
+# ------------------------------------------------------------ dependency
 
 
 def require_auth(
     db: Session = Depends(get_db),
     session: str | None = Cookie(default=None, alias=COOKIE_NAME),
 ) -> None:
-    """Protegge un router. Risponde 401 senza dettagli.
+    """Protects a router. Answers 401 with no detail.
 
-    Il messaggio non distingue "cookie assente" da "cookie scaduto" da "firma
-    non valida": all'interfaccia serve solo sapere che deve mostrare il login,
-    e a chi bussa non serve sapere altro.
+    The message does not distinguish "no cookie" from "expired cookie" from
+    "bad signature": the interface only needs to know it should show the login,
+    and whoever is knocking needs to know nothing else.
     """
     if not verify_token(get_secret(db), session):
         raise HTTPException(

@@ -49,13 +49,13 @@ const svgEl = (tag, attrs) => {
 };
 
 /**
- * Ciambella interattiva: passando sopra (o toccando) una fetta il centro
- * mostra quella categoria; cliccandola la si aggiunge ai filtri.
- * Un grafico che non si può interrogare è solo una decorazione.
+ * Interactive donut: hovering (or tapping) a slice shows that category in
+ * the centre; clicking it adds the category to the filters.
+ * A chart you cannot interrogate is just decoration.
  */
 function donut(categories, onPick) {
-  const spese = categories.filter((c) => Number(c.total) < 0);
-  const total = spese.reduce((sum, c) => sum + Math.abs(Number(c.total)), 0);
+  const expenses = categories.filter((c) => Number(c.total) < 0);
+  const total = expenses.reduce((sum, c) => sum + Math.abs(Number(c.total)), 0);
   if (!total) return null;
 
   const size = 190;
@@ -79,7 +79,7 @@ function donut(categories, onPick) {
 
   const showTotal = () => {
     labelTop.textContent = money(-total);
-    labelBottom.textContent = `${spese.length} categories`;
+    labelBottom.textContent = `${expenses.length} categories`;
   };
   const showCategory = (category) => {
     labelTop.textContent = money(category.total);
@@ -89,7 +89,7 @@ function donut(categories, onPick) {
 
   let offset = 0;
   const slices = [];
-  for (const category of spese) {
+  for (const category of expenses) {
     const share = Math.abs(Number(category.total)) / total;
     const slice = svgEl("circle", {
       cx: center,
@@ -104,8 +104,8 @@ function donut(categories, onPick) {
       class: "donut-slice",
     });
 
-    // Le altre fette sbiadiscono: l'occhio segue quella piena senza bisogno
-    // di aloni, e funziona identico con mouse e con dito.
+    // The other slices fade: the eye follows the solid one without needing
+    // a glow, and it behaves identically with a mouse or a finger.
     const highlight = () => {
       for (const other of slices) {
         other.setAttribute("stroke-width", 24);
@@ -125,15 +125,15 @@ function donut(categories, onPick) {
 
     slice.addEventListener("mouseenter", highlight);
     slice.addEventListener("mouseleave", reset);
-    // sul telefono non esiste il passaggio del cursore: il primo tocco
-    // evidenzia, il secondo filtra
+    // there is no hover on a phone: the first tap highlights, the second
+    // one filters
     let armed = false;
     slice.addEventListener("click", () => {
       if (!armed) {
         highlight();
         armed = true;
-        // se non arriva il secondo tocco si torna com'era: una fetta
-        // evidenziata per sempre sembrerebbe un errore
+        // if the second tap never comes we revert: a slice highlighted
+        // forever would look like a bug
         setTimeout(() => {
           if (!armed) return;
           armed = false;
@@ -156,19 +156,19 @@ function donut(categories, onPick) {
 }
 
 function categoriesCard(data, onPick) {
-  const spese = data.by_category.filter((c) => Number(c.total) < 0);
-  if (!spese.length) return el("div", { class: "card" }, [empty("No spending in this period")]);
+  const expenses = data.by_category.filter((c) => Number(c.total) < 0);
+  if (!expenses.length) return el("div", { class: "card" }, [empty("No spending in this period")]);
 
-  const max = Math.max(...spese.map((c) => Math.abs(Number(c.total))));
+  const max = Math.max(...expenses.map((c) => Math.abs(Number(c.total))));
   const previous = data.previous?.by_category || {};
 
   return el("div", { class: "card" }, [
     el("h2", { text: "Spending by category" }),
-    donut(spese, onPick),
+    donut(expenses, onPick),
     el("div", { class: "muted", style: "text-align:center;margin:-8px 0 12px;font-size:.72rem" }, [
       "Tap a slice to inspect it, tap again to filter by it",
     ]),
-    ...spese.map((c) => {
+    ...expenses.map((c) => {
       const value = Math.abs(Number(c.total));
       const before = previous[c.category_id ?? 0];
       const change = before !== undefined ? delta(c.total, before) : null;
@@ -226,8 +226,8 @@ function monthsCard(months) {
     );
     tip.hidden = false;
 
-    // ancorato alla colonna ma tenuto dentro la card: sui mesi ai bordi
-    // altrimenti uscirebbe dallo schermo
+    // anchored to the column but kept inside the card: on the months at
+    // the edges it would otherwise run off screen
     const area = chart.getBoundingClientRect();
     const box = column.getBoundingClientRect();
     const wanted = box.left - area.left + box.width / 2 - tip.offsetWidth / 2;
@@ -260,7 +260,7 @@ function monthsCard(months) {
 
     column.addEventListener("mouseenter", () => showTip(month, column));
     column.addEventListener("mouseleave", hideTip);
-    // sul telefono non c'è il cursore: il tocco apre e richiude
+    // no cursor on a phone: tapping opens and closes it
     column.addEventListener("click", () => {
       if (column.classList.contains("active")) hideTip();
       else showTip(month, column);
@@ -390,7 +390,7 @@ function balancesCard(balances, onChange) {
             title: "Delete account",
             onclick: async (event) => {
               event.stopPropagation();
-              // il numero di movimenti va detto PRIMA: è irreversibile
+              // the transaction count must be stated FIRST: this cannot be undone
               const message = a.transactions
                 ? `Delete "${a.name}"?\n\nIts ${a.transactions} transactions will be deleted too. This cannot be undone.`
                 : `Delete "${a.name}"?`;
@@ -434,8 +434,8 @@ export async function render(root) {
   let bar = filterBar(() => load());
   root.replaceChildren(bar, content);
 
-  // cliccando una fetta o una barra si aggiunge quella categoria ai filtri:
-  // la barra va ricostruita per mostrare il chip attivo
+  // clicking a slice or a bar adds that category to the filters: the bar
+  // has to be rebuilt so the active chip shows
   const pickCategory = (categoryId) => {
     if (!addCategory(categoryId)) return;
     const rebuilt = filterBar(() => load());
@@ -451,8 +451,8 @@ export async function render(root) {
       const params = toSearchParams({ compare: true });
       const [summary, months, top, balances, subs] = await Promise.all([
         api.summary(params),
-        // l'andamento ignora il filtro di periodo: un grafico storico
-        // ridotto a una colonna sola non è un grafico storico
+        // the trend ignores the period filter: a historical chart reduced
+        // to a single column is not a historical chart
         api.months(toSearchParams({ months: 12 }, { withDates: false })),
         api.top(toSearchParams({ limit: 8 })),
         api.balances(),

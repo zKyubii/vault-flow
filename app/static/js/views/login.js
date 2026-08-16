@@ -2,11 +2,11 @@ import { api } from "../api.js";
 import { el, toast } from "../ui.js";
 
 /**
- * Schermata di accesso.
+ * Sign-in screen.
  *
- * Non è una vista come le altre: sostituisce tutta l'interfaccia finché non
- * si è dentro, e nasconde barra dei titoli e navigazione — mostrare le
- * schede a chi non è autenticato significherebbe solo farle fallire tutte.
+ * Not a view like the others: it replaces the whole interface until you are
+ * in, and hides the title bar and navigation — showing the tabs to someone
+ * who is not authenticated would only make all of them fail.
  */
 export function showLogin(status = {}) {
   document.body.classList.add("locked");
@@ -15,7 +15,7 @@ export function showLogin(status = {}) {
     type: "password",
     placeholder: "Password",
     autocomplete: "current-password",
-    // le PWA installate riaprono qui: il campo pronto evita un tocco
+    // installed PWAs reopen here: a focused field saves one tap
     autofocus: true,
   });
 
@@ -29,7 +29,7 @@ export function showLogin(status = {}) {
     errorBox.hidden = true;
     try {
       await api.login(password);
-      // ricarica pulita: ogni vista riparte con il cookie valido
+      // clean reload: every view restarts with a valid cookie
       location.reload();
     } catch (error) {
       errorBox.textContent = error.message;

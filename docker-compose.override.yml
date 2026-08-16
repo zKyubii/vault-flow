@@ -1,27 +1,27 @@
-# Extra di sviluppo. Docker Compose carica questo file DA SOLO quando lanci
-# `docker compose up` senza specificare i file, quindi in locale non devi
-# fare nulla.
+# Development extras. Docker Compose loads this file BY ITSELF when you run
+# `docker compose up` without naming the files, so locally you do not have to
+# do anything.
 #
-# In produzione si indicano i file esplicitamente e questo resta fuori:
+# In production the files are named explicitly and this one stays out:
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
 services:
   app:
-    # In sviluppo su tutte le interfacce: comodo per aprire la dashboard dal
-    # telefono sulla rete di casa mentre si lavora.
+    # In development, on every interface: handy for opening the dashboard from
+    # a phone on the home network while working.
     ports:
       - "${APP_PORT:-8000}:8000"
     volumes:
-      # il codice arriva dall'host: modifichi un .py e uvicorn ricarica,
-      # senza ricostruire l'immagine
+      # the source comes from the host: edit a .py and uvicorn reloads,
+      # no image rebuild needed
       - ./app:/code/app
       - ./db:/code/db
-      # i test girano nel container, dove ci sono tutte le dipendenze:
+      # tests run inside the container, where every dependency is present:
       #   docker compose exec app python -m pytest tests/ -q
       - ./tests:/code/tests
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-  # Per ispezionare il database con un client grafico, scommenta:
+  # To inspect the database with a GUI client, uncomment:
   # db:
   #   ports:
   #     - "127.0.0.1:3307:3306"

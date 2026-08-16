@@ -5,8 +5,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /code
 
-# Le dipendenze si copiano PRIMA del codice: così Docker rifà il pip install
-# solo quando cambia requirements.txt, non a ogni modifica di un .py.
+# Dependencies are copied BEFORE the source: that way Docker only re-runs pip
+# install when requirements.txt changes, not on every .py edit.
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

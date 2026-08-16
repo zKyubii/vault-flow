@@ -1,39 +1,42 @@
-# Esempio di reverse proxy con Caddy.
+# Example reverse proxy with Caddy.
 #
-# Perché Caddy e non nginx: ottiene e rinnova da solo il certificato HTTPS da
-# Let's Encrypt, senza certbot né cron. Per un'app personale è tre righe
-# invece di trenta.
+# Why Caddy and not nginx: it obtains and renews the HTTPS certificate from
+# Let's Encrypt on its own, with no certbot and no cron. For a personal app
+# that is three lines instead of thirty.
 #
-# Uso:
-#   1. installa Caddy sulla VPS
-#   2. copia questo file in /etc/caddy/Caddyfile e cambia il dominio
+# Usage:
+#   1. install Caddy on the server
+#   2. copy this file to /etc/caddy/Caddyfile and change the domain
 #   3. sudo systemctl reload caddy
 #
-# Il dominio deve già puntare all'IP della VPS (record A), altrimenti la
-# richiesta del certificato fallisce.
+# The domain must already point at the server's IP (an A record), otherwise
+# the certificate request fails.
+#
+# Note: if you reach the app over a private network (Tailscale, WireGuard) you
+# do not need any of this — there is no public door to protect.
 
-spese.tuodominio.it {
+expenses.example.com {
     encode zstd gzip
 
-    # L'app ascolta solo su localhost: da fuori si passa per forza da qui.
+    # The app listens on localhost only: from outside you must pass through here.
     reverse_proxy 127.0.0.1:8000
 
-    # Intestazioni di sicurezza. Non sono decorazione: questa app mostra
-    # l'elenco completo di dove spendi i soldi.
+    # Security headers. Not decoration: this app displays a complete list of
+    # where you spend your money.
     header {
-        # obbliga il browser a usare HTTPS per un anno
+        # force the browser to use HTTPS for a year
         Strict-Transport-Security "max-age=31536000; includeSubDomains"
-        # vieta di incorniciare il sito altrove (clickjacking)
+        # forbid framing the site elsewhere (clickjacking)
         X-Frame-Options "DENY"
         X-Content-Type-Options "nosniff"
         Referrer-Policy "same-origin"
-        # l'app non carica nulla da domini esterni: vietarlo rende inutile
-        # un eventuale tentativo di iniezione
+        # the app loads nothing from external domains: forbidding it makes any
+        # injection attempt useless
         Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self'"
         -Server
     }
 
     log {
-        output file /var/log/caddy/spese.log
+        output file /var/log/caddy/vault-flow.log
     }
 }

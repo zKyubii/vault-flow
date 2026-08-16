@@ -1,9 +1,9 @@
--- 002 — Dati di partenza: preferenze e albero categorie di base.
--- Tutto modificabile dall'interfaccia: qui c'è solo un punto di partenza
--- ragionevole, niente di hardcodato nella logica.
+-- 002 — Starting data: preferences and a basic category tree.
+-- Everything is editable from the interface: this is only a reasonable
+-- starting point, nothing here is hardcoded into the logic.
 --
--- Valori neutri: questo file gira su ogni installazione, non solo sulla
--- propria. Il nome visualizzato si cambia dalle impostazioni dell'app.
+-- Neutral values: this file runs on every installation, not just its author's.
+-- The display name is changed from the app settings.
 
 INSERT INTO settings (setting_key, value) VALUES
   ('display_name',     'User'),
@@ -11,7 +11,7 @@ INSERT INTO settings (setting_key, value) VALUES
   ('month_start_day',  '1'),
   ('theme',            'auto');
 
--- Categorie principali
+-- Top-level categories
 INSERT INTO categories (name, color, icon, is_income) VALUES
   ('Home',            '#8d6e63', 'home',      0),
   ('Food',            '#ef6c00', 'utensils',  0),
@@ -26,7 +26,7 @@ INSERT INTO categories (name, color, icon, is_income) VALUES
   ('Transfers',       '#78909c', 'exchange',  0),
   ('Uncategorised',   '#9e9e9e', 'question',  0);
 
--- Sottocategorie
+-- Sub-categories
 INSERT INTO categories (name, parent_id, color, is_income)
 SELECT 'Groceries',     id, '#fb8c00', 0 FROM categories WHERE name = 'Food' AND parent_id IS NULL;
 INSERT INTO categories (name, parent_id, color, is_income)
@@ -49,5 +49,5 @@ SELECT 'Salary',    id, '#2e7d32', 1 FROM categories WHERE name = 'Income' AND p
 INSERT INTO categories (name, parent_id, color, is_income)
 SELECT 'Refunds',   id, '#66bb6a', 1 FROM categories WHERE name = 'Income' AND parent_id IS NULL;
 
--- Un conto "Cash" c'è sempre: è dove finiscono gli inserimenti manuali.
+-- There is always a "Cash" account: it is where manual entries land.
 INSERT INTO accounts (name, type, currency) VALUES ('Cash', 'cash', 'EUR');

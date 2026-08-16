@@ -1,13 +1,13 @@
-﻿"""Motore di categorizzazione a regole.
+"""Rule-based categorisation engine.
 
-Due principi non negoziabili:
+Two non-negotiable principles:
 
-1. **Le regole le scrive l'utente.** Nessuna categoria indovinata da una lista
-   di negozi hardcodata: si romperebbe fuori dall'Italia, invecchierebbe, e
-   non sarebbe modificabile da chi si autohosta.
-2. **Una categoria scelta a mano non si tocca mai.** Se hai corretto una
-   transazione, nessuna riapplicazione delle regole può sovrascriverti.
-   È il senso della colonna `category_source`.
+1. **The user writes the rules.** No categories guessed from a hardcoded list
+   of merchants: it would break outside one country, it would age badly, and
+   whoever self-hosts could not change it.
+2. **A category chosen by hand is never touched.** If you corrected a
+   transaction, no re-run of the rules may overwrite you. That is what the
+   `category_source` column is for.
 """
 
 from __future__ import annotations
@@ -57,8 +57,8 @@ def _matches(rule: CategoryRule, text: str) -> bool:
         try:
             return re.search(rule.pattern, text, re.IGNORECASE) is not None
         except re.error:
-            # regola diventata invalida: la si ignora invece di far fallire
-            # l'intera riapplicazione
+            # a rule that became invalid is ignored rather than failing the
+            # whole re-run
             return False
     return False
 
@@ -70,11 +70,11 @@ def _field_value(transaction: Transaction, field_name: str) -> str:
 
 
 def match_rule(transaction: Transaction, rules: list[CategoryRule]) -> CategoryRule | None:
-    """Prima regola che combacia, in ordine di priorità.
+    """First rule that matches, in priority order.
 
-    `priority` più basso = valutata prima = vince. Serve un ordine
-    deterministico: le regole si sovrappongono quasi sempre ("amazon" e
-    "amazon prime") e senza priorità il risultato dipenderebbe dal caso.
+    Lower `priority` = evaluated first = wins. A deterministic order is
+    required: rules almost always overlap ("amazon" and "amazon prime") and
+    without priority the result would depend on chance.
     """
     for rule in rules:
         if rule.account_id is not None and rule.account_id != transaction.account_id:
@@ -99,7 +99,7 @@ class ApplyResult:
     examined: int = 0
     matched: int = 0
     updated: int = 0
-    protected: int = 0  # scelte a mano, lasciate stare
+    protected: int = 0  # set by hand, left alone
     by_category: dict[str, int] = field(default_factory=dict)
     samples: list[dict] = field(default_factory=list)
 
@@ -112,12 +112,12 @@ def apply_rules(
     dry_run: bool = False,
     sample_limit: int = 20,
 ) -> ApplyResult:
-    """Applica le regole alle transazioni esistenti.
+    """Applies the rules to existing transactions.
 
-    `only_uncategorized=True` tocca solo le righe senza categoria.
-    Con `False` ricategorizza anche quelle già assegnate **da una regola**,
-    utile dopo aver cambiato le regole — ma le scelte manuali restano
-    comunque intoccabili.
+    `only_uncategorized=True` touches only rows without a category.
+    With `False` it also re-categorises rows previously assigned **by a
+    rule**, which is useful after changing the rules — but manual choices stay
+    untouchable either way.
     """
     rules = load_rules(db)
     result = ApplyResult()
@@ -137,7 +137,7 @@ def apply_rules(
     for transaction in db.scalars(query):
         result.examined += 1
 
-        # una categoria scelta a mano non si tocca, mai
+        # a category chosen by hand is never touched
         if transaction.category_source == "manual":
             result.protected += 1
             continue
@@ -148,7 +148,7 @@ def apply_rules(
 
         result.matched += 1
         if transaction.category_id == rule.category_id:
-            continue  # già a posto
+            continue  # already correct
 
         if len(result.samples) < sample_limit:
             result.samples.append(
@@ -181,7 +181,7 @@ def apply_rules(
 
 
 # --------------------------------------------------------------------------
-# suggerimenti
+# suggestions
 # --------------------------------------------------------------------------
 
 _STRIP_PARENS = re.compile(r"\([^)]*\)")
@@ -191,10 +191,10 @@ _COLLAPSE = re.compile(r"\s+")
 
 
 def merchant_key(description: str | None) -> str:
-    """Riduce una descrizione al "negozio" che ci sta dietro.
+    """Reduces a description to the merchant behind it.
 
-    "Top-up by *1234" e "Top-up by *5678" collassano sulla stessa chiave, così
-    diventano una regola sola invece di due.
+    "Top-up by *3208" and "Top-up by *4140" collapse onto the same key, so
+    they become one rule instead of two.
     """
     text = (description or "").lower()
     text = _STRIP_PARENS.sub(" ", text)
@@ -208,16 +208,16 @@ _TRAILING_NOISE = re.compile(r"^[*#]?\d[\d./-]*$")
 
 
 def suggest_pattern(description: str | None) -> str:
-    """Un pattern che sia davvero **contenuto** nella descrizione.
+    """A pattern that is genuinely **contained** in the description.
 
-    `merchant_key` serve a raggruppare e per farlo toglie le cifre: da
-    "G2a Com" ricava "g a com", che come testo da cercare non trova nulla.
-    Qui invece si tolgono solo i pezzi di coda variabili — codici carta,
-    numeri di scontrino, IBAN fra parentesi — lasciando una stringa che il
-    matching "contiene" trova per davvero.
+    `merchant_key` exists to group, and to do that it strips digits: from
+    "G2a Com" it produces "g a com", which as a search string matches
+    nothing. Here we only remove the variable trailing parts — card codes,
+    receipt numbers, IBANs in brackets — leaving a string that a "contains"
+    match will actually find.
 
-        "Bottega 4821"            -> "bers"
-        "Top-up by *1234"       -> "top-up by"
+        "Bers 14700"            -> "bers"
+        "Top-up by *3208"       -> "top-up by"
         "G2a Com"               -> "g2a com"
         "Incoming from X (IT..)"-> "incoming from x"
     """
@@ -228,7 +228,7 @@ def suggest_pattern(description: str | None) -> str:
         tokens.pop()
 
     pattern = " ".join(tokens).strip(" -_.,;:")
-    # se restasse troppo poco per essere selettivo, meglio la descrizione intera
+    # if too little would be left to be selective, prefer the full description
     if len(pattern) < 3:
         return _COLLAPSE.sub(" ", (description or "").strip().lower())
     return pattern
@@ -242,10 +242,10 @@ def count_matching(
     field: str = "description",
     account_id: int | None = None,
 ) -> dict:
-    """Quante transazioni prenderebbe una regola, e quante ne cambierebbe.
+    """How many transactions a rule would catch, and how many it would change.
 
-    Serve a poter dire "vale anche per gli altri 29" invece di far creare una
-    regola alla cieca.
+    This is what lets the app say "it also applies to the other 29" instead of
+    making you create a rule blind.
     """
     probe = CategoryRule()
     probe.pattern = pattern
@@ -273,10 +273,11 @@ def count_matching(
 
 
 def suggest_rules(db: Session, *, limit: int = 30, account_id: int | None = None) -> list[dict]:
-    """Raggruppa le transazioni senza categoria per negozio ricorrente.
+    """Groups uncategorised transactions by recurring merchant.
 
-    Serve a partire: con 400 transazioni da categorizzare a mano si molla dopo
-    dieci minuti. Raggruppate, diventano ~20 regole da creare una volta sola.
+    It exists to get you started: categorising 400 transactions by hand is
+    abandoned after ten minutes. Grouped, they become around 20 rules you
+    create once.
     """
     query = select(Transaction).where(Transaction.category_id.is_(None))
     if account_id is not None:
@@ -290,8 +291,8 @@ def suggest_rules(db: Session, *, limit: int = 30, account_id: int | None = None
         group = groups.setdefault(
             key,
             {
-                # il pattern proposto deve essere cercabile, non la chiave di
-                # raggruppamento: vedi suggest_pattern()
+                # the suggested pattern must be searchable, not the grouping
+                # key: see suggest_pattern()
                 "pattern": suggest_pattern(transaction.description),
                 "count": 0,
                 "total": Decimal(0),

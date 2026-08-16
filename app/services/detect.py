@@ -1,9 +1,10 @@
-﻿"""Rilevamenti automatici: abbonamenti ricorrenti e giroconti fra conti propri.
+"""Automatic detection: recurring subscriptions and transfers between your
+own accounts.
 
-Entrambi cercano di dedurre qualcosa che nei dati non è scritto. Perciò:
-**propongono, non decidono.** L'utente vede cosa è stato trovato e conferma.
-Un'app che ricategorizza da sola senza chiedere è un'app di cui non ti fidi
-più quando i numeri sembrano strani.
+Both try to infer something the data does not state. So: **they propose, they
+do not decide.** The user sees what was found and confirms. An app that
+re-categorises on its own is one you stop trusting the moment the numbers look
+odd.
 """
 
 from __future__ import annotations
@@ -20,11 +21,11 @@ from app.models import Account, Category, Transaction
 from app.services.categorization import merchant_key
 
 # --------------------------------------------------------------------------
-# abbonamenti ricorrenti
+# recurring subscriptions
 # --------------------------------------------------------------------------
 
-# Fasce di cadenza, con tolleranza: le banche registrano l'addebito con
-# qualche giorno di scarto e i mesi non hanno tutti la stessa lunghezza.
+# Cadence bands, with tolerance: banks post the charge a few days off and
+# months are not all the same length.
 CADENCES = [
     ("weekly", 6, 8, Decimal("4.333")),
     ("monthly", 25, 36, Decimal(1)),
@@ -32,7 +33,7 @@ CADENCES = [
     ("yearly", 350, 380, Decimal("0.0833")),
 ]
 
-# Quanto può oscillare l'importo restando "lo stesso abbonamento".
+# How much the amount may drift and still be "the same subscription".
 AMOUNT_TOLERANCE = Decimal("0.15")
 
 
@@ -44,14 +45,15 @@ def _cadence_for(gap: float) -> tuple[str, Decimal] | None:
 
 
 def _cluster_by_amount(items: list[Transaction]) -> list[list[Transaction]]:
-    """Dentro lo stesso negozio, importi diversi sono cose diverse.
+    """Within the same merchant, different amounts are different things.
 
-    Discord ha 9,99 il 9 di ogni mese (abbonamento) mescolato a 10,13, 3,49 e
-    2,99 (acquisti singoli). Raggruppando tutto insieme la varianza fa
-    scartare anche l'abbonamento vero. Separando per importo, resta.
+    A chat app might charge 9.99 on the 9th of every month (a subscription)
+    mixed with 10.13, 3.49 and 2.99 one-off purchases. Grouped together, the
+    variance throws away the real subscription as well. Split by amount, it
+    survives.
 
-    Un aumento di prezzo spezza il gruppo in due: entrambi i tronconi vengono
-    comunque valutati, quindi al massimo si perde un po' di storico.
+    A price increase splits the group in two: both halves are still evaluated,
+    so at worst a little history is lost.
     """
     clusters: list[dict] = []
     for transaction in sorted(items, key=lambda t: abs(t.amount)):
@@ -67,11 +69,11 @@ def _cluster_by_amount(items: list[Transaction]) -> list[list[Transaction]]:
 
 
 def _recent_run(items: list[Transaction], typical_gap: float) -> list[Transaction]:
-    """La sequenza regolare più recente, risalendo dall'ultimo addebito.
+    """The most recent regular sequence, walking back from the last charge.
 
-    Un intervallo è accettato se vale circa 1, 2 o 3 volte la cadenza: così un
-    mese saltato non spezza la serie, mentre un vuoto di nove mesi sì — perché
-    quello è un abbonamento diverso, disdetto e poi riattivato.
+    A gap is accepted if it is roughly 1, 2 or 3 times the cadence: a skipped
+    month does not break the series, while a nine-month hole does — because
+    that is a different subscription, cancelled and started again.
     """
     if typical_gap <= 0:
         return items
@@ -89,13 +91,13 @@ def _recent_run(items: list[Transaction], typical_gap: float) -> list[Transactio
 
 
 def _billing_day_is_stable(items: list[Transaction], cadence: str) -> bool:
-    """Un abbonamento addebita sempre lo stesso giorno.
+    """A subscription always bills on the same day.
 
-    È il discriminante che separa un abbonamento da una coincidenza. Senza,
-    tre acquisti Steam da ~40 € capitati a tre mesi di distanza vengono
-    scambiati per un abbonamento trimestrale: importo simile e cadenza
-    plausibile, ma i giorni sono 25, 24 e 14. Spotify è sempre il 14,
-    Discord sempre il 9, Claude sempre il 4.
+    This is the discriminator that separates a subscription from a
+    coincidence. Without it, three game purchases of about €40 that happened
+    to fall three months apart get mistaken for a quarterly subscription:
+    similar amount, plausible cadence, but the days were 25, 24 and 14. Real
+    subscriptions land on the same day every time.
     """
     if cadence == "weekly":
         days = [t.booked_at.weekday() for t in items]
@@ -104,7 +106,7 @@ def _billing_day_is_stable(items: list[Transaction], cadence: str) -> bool:
 
     days = [t.booked_at.day for t in items]
     reference = median(days)
-    # tolleranza di 3 giorni: weekend e festivi spostano l'addebito
+    # three days of tolerance: weekends and holidays shift the charge
     return all(min(abs(d - reference), 31 - abs(d - reference)) <= 3 for d in days)
 
 
@@ -114,10 +116,11 @@ def detect_subscriptions(
     min_occurrences: int = 3,
     months_back: int = 18,
 ) -> dict:
-    """Trova gli addebiti che si ripetono a intervalli regolari e importo stabile.
+    """Finds charges that repeat at a regular interval with a stable amount.
 
-    Servono **entrambe** le condizioni. Solo la regolarità non basta: Amazon
-    compare ogni mese ma con importi da 6 a 1.157 €, e non è un abbonamento.
+    **Both** conditions are required. Regularity alone is not enough: a big
+    retailer shows up every month with amounts from 6 to 1,157, and that is
+    not a subscription.
     """
     cutoff = date.today() - timedelta(days=months_back * 31)
 
@@ -155,11 +158,10 @@ def detect_subscriptions(
         if cadence is None:
             continue
 
-        # Si guarda solo la sequenza regolare più recente, non tutta la storia.
-        # Un abbonamento vero ha buchi: pagamenti falliti, mesi in pausa,
-        # disdette e riattivazioni. Discord è addebitato il 9 di ogni mese ma
-        # ha un vuoto di 9 mesi nel 2025: pretendendo che *ogni* intervallo sia
-        # regolare, l'abbonamento più evidente verrebbe scartato.
+        # Only the most recent regular sequence is considered, not the whole
+        # history. A real subscription has holes: failed payments, paused
+        # months, cancellations and restarts. Requiring *every* interval to be
+        # regular throws away the most obvious subscriptions.
         items = _recent_run(items, typical_gap)
         if len(items) < min_occurrences:
             continue
@@ -180,7 +182,7 @@ def detect_subscriptions(
         name, factor = cadence
         last = items[-1].booked_at
         next_expected = last + timedelta(days=int(typical_gap))
-        # attivo se il prossimo addebito non è già in forte ritardo
+        # active if the next charge is not already badly overdue
         active = (date.today() - last).days <= typical_gap * 1.6
 
         found.append(
@@ -214,19 +216,19 @@ def detect_subscriptions(
 
 
 # --------------------------------------------------------------------------
-# giroconti fra conti propri
+# transfers between your own accounts
 # --------------------------------------------------------------------------
 
 
 def detect_transfers(db: Session, *, window_days: int = 5) -> list[dict]:
-    """Cerca coppie di movimenti uguali e opposti su due conti diversi.
+    """Looks for pairs of equal and opposite amounts on two different accounts.
 
-    Sono gli stessi soldi che si spostano: contarli come spesa e come entrata
-    gonfia i totali due volte, spesso per migliaia di euro l'anno.
+    That is the same money moving: counting it as both spending and income
+    inflates the totals twice, often by thousands a year.
 
-    L'abbinamento è **1 a 1**: una volta accoppiato, un movimento non può
-    essere riusato. Senza questo, tre addebiti da 3,50 € genererebbero nove
-    coppie invece di una.
+    Matching is **one to one**: once paired, a transaction cannot be reused.
+    Without that, three charges of 3.50 would produce nine pairs instead of
+    one.
     """
     accounts = {a.id: a.name for a in db.scalars(select(Account))}
     excluded = {
@@ -286,10 +288,10 @@ def detect_transfers(db: Session, *, window_days: int = 5) -> list[dict]:
 def apply_transfers(
     db: Session, *, category_id: int, window_days: int = 5, pair_ids: list[int] | None = None
 ) -> dict:
-    """Assegna la categoria trasferimenti alle coppie rilevate.
+    """Assigns the transfer category to the detected pairs.
 
-    Le transazioni categorizzate a mano non vengono toccate: vale qui come
-    ovunque nel progetto.
+    Transactions categorised by hand are not touched: that holds here as
+    everywhere else in the project.
     """
     pairs = detect_transfers(db, window_days=window_days)
     wanted = set(pair_ids or [])

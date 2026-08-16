@@ -1,9 +1,9 @@
 import { api } from "../api.js";
 import { el, empty, money, spinner, toast, todayISO } from "../ui.js";
 
-// Serve per il contante, che non lascia traccia digitale da importare.
-// Deve essere velocissimo: importo, due parole, fatto. Un form lungo
-// garantisce che dopo tre giorni non lo usi più.
+// This is for cash, which leaves no digital trace to import.
+// It has to be fast: amount, two words, done. A long form guarantees
+// nobody uses it after three days.
 
 const QUICK = [5, 10, 20, 50];
 
@@ -37,7 +37,7 @@ export async function render(root) {
       el("option", {
         value: a.id,
         text: a.name,
-        // il contante è il caso d'uso principale qui
+        // cash is the main use case here
         selected: a.type === "cash",
       })
     )
@@ -54,7 +54,7 @@ export async function render(root) {
     }),
   ]);
 
-  // Uscita di default: quasi tutto quello che si scrive a mano è una spesa.
+  // Expense by default: almost everything typed by hand is money going out.
   let isExpense = true;
   const expenseBtn = el("button", { class: "chip active", text: "Expense" });
   const incomeBtn = el("button", { class: "chip", text: "Income" });

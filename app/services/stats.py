@@ -1,12 +1,12 @@
-"""Aggregazioni per la dashboard.
+"""Aggregations for the dashboard.
 
-Le somme si fanno nel database, non nel browser: a 400 transazioni la
-differenza non si vede, a 20.000 sì. E il telefono non deve scaricare tutto
-lo storico per mostrare un totale.
+The sums are computed in the database, not in the browser: at 400 rows the
+difference is invisible, at 20,000 it is not. And a phone should not download
+the whole history just to show a total.
 
-Le categorie con `exclude_from_stats` (giroconti fra conti propri, depositi su
-broker, saldi iniziali) restano nei saldi ma **non** entrano in entrate e
-uscite: sono soldi spostati, non guadagnati né spesi.
+Categories flagged `exclude_from_stats` (transfers between your own accounts,
+broker deposits, opening balances) stay in the balances but do **not** count
+as income or spending: that money was moved, not earned or spent.
 """
 
 from __future__ import annotations
@@ -20,10 +20,10 @@ from sqlalchemy.orm import Session
 from app.filters import TxFilters, apply_exclusion, apply_filters, excluded_category_ids
 from app.models import Account, Category, Transaction
 
-# Entrate e uscite si calcolano **per transazione**, non sommando prima per
-# categoria: un rimborso dentro "Shopping" annullerebbe parte degli acquisti e
-# sparirebbe da entrambi i totali. Chi guarda vuole sapere quanto è uscito e
-# quanto è entrato, non il saldo netto di ogni categoria.
+# Income and expenses are computed **per transaction**, not by summing per
+# category first: a refund inside "Shopping" would cancel part of the
+# purchases and disappear from both totals. People want to know how much went
+# out and how much came in, not the net balance of each category.
 _POSITIVE = func.coalesce(func.sum(case((Transaction.amount > 0, Transaction.amount), else_=0)), 0)
 _NEGATIVE = func.coalesce(func.sum(case((Transaction.amount < 0, Transaction.amount), else_=0)), 0)
 
@@ -40,8 +40,8 @@ def summary(db: Session, filters: TxFilters) -> dict:
 
     income, expense = _totals(db, filters, excluded)
 
-    # Soldi spostati fra conti propri: si conta solo il lato in uscita,
-    # altrimenti ogni giroconto verrebbe contato due volte.
+    # Money moved between your own accounts: only the outgoing side is
+    # counted, otherwise every transfer would be counted twice.
     moved = Decimal(0)
     if excluded and not filters.category_ids:
         moved = abs(
@@ -73,7 +73,7 @@ def summary(db: Session, filters: TxFilters) -> dict:
     by_category = [
         {
             "category_id": category_id,
-            "name": names[category_id].name if category_id in names else "Senza categoria",
+            "name": names[category_id].name if category_id in names else "Uncategorised",
             "color": names[category_id].color if category_id in names else "#9e9e9e",
             "is_income": bool(names[category_id].is_income) if category_id in names else False,
             "total": Decimal(total or 0),
@@ -100,12 +100,12 @@ def _last_day_of_month(day: date) -> date:
 
 
 def _previous_range(start: date, end: date, span: int) -> tuple[date, date]:
-    """Il periodo da confrontare.
+    """The period to compare against.
 
-    Se l'intervallo è **esattamente un mese di calendario**, il precedente è il
-    mese di calendario prima — non "gli N giorni prima". Confrontare luglio
-    (31 giorni) con "30 giugno più il 31 maggio" darebbe un numero giusto in
-    astratto e sbagliato nella testa di chi guarda.
+    If the range is **exactly one calendar month**, the previous period is the
+    calendar month before it — not "the N days before". Comparing July
+    (31 days) with "June plus the 31st of May" gives a number that is right in
+    the abstract and wrong in the reader's head.
     """
     is_full_month = start.day == 1 and end == _last_day_of_month(start) and start.month == end.month
     if is_full_month:
@@ -115,10 +115,10 @@ def _previous_range(start: date, end: date, span: int) -> tuple[date, date]:
 
 
 def compare_previous(db: Session, filters: TxFilters) -> dict | None:
-    """Confronta il periodo con quello immediatamente precedente di pari durata.
+    """Compares the period with the immediately preceding one of equal length.
 
-    Senza un termine di paragone "hai speso 800 €" non dice niente: il punto è
-    sapere se sono tanti *per te*.
+    Without something to compare against, "you spent 800" says nothing: the
+    point is knowing whether that is a lot *for you*.
     """
     if filters.date_from is None:
         return None

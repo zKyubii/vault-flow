@@ -2,11 +2,11 @@ fastapi>=0.115
 uvicorn[standard]>=0.34
 SQLAlchemy>=2.0.36
 PyMySQL>=1.1.1
-# PyMySQL da solo non sa parlare con l'auth di default di MySQL 8
-# (caching_sha2_password): serve cryptography.
+# PyMySQL alone cannot speak MySQL 8's default auth (caching_sha2_password):
+# that needs cryptography.
 cryptography>=44.0
 pydantic-settings>=2.7
 python-multipart>=0.0.20
 
-# --- sviluppo ---
+# --- development ---
 pytest>=8.3

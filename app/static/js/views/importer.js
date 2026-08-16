@@ -1,9 +1,9 @@
 import { api } from "../api.js";
 import { clear, el, empty, formatDate, money, spinner, toast } from "../ui.js";
 
-// Flusso: scegli file → ispeziona → scegli profilo → ANTEPRIMA → salva.
-// L'anteprima non è un vezzo: è ciò che rende l'import una cosa che fai
-// volentieri invece che col fiato sospeso.
+// Flow: pick file → inspect → pick profile → PREVIEW → save.
+// The preview is not a flourish: it is what turns importing into something
+// you do willingly instead of holding your breath.
 
 let file = null;
 
@@ -37,7 +37,7 @@ export async function render(root) {
       : [el("option", { value: "", text: "— no saved profile —" })]
   );
 
-  // se il profilo ha un conto associato, si allinea la selezione
+  // if the profile has an account attached, align the selection
   const syncAccount = () => {
     const profile = profiles.find((p) => String(p.id) === profileSelect.value);
     if (profile && profile.account_id) accountSelect.value = profile.account_id;

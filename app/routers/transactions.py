@@ -1,4 +1,4 @@
-"""Transazioni: elenco e inserimento manuale."""
+"""Transactions: listing and manual entry."""
 
 from datetime import date
 
@@ -19,7 +19,7 @@ from app.schemas import (
     TransactionPage,
 )
 
-router = APIRouter(tags=["transazioni"])
+router = APIRouter(tags=["transactions"])
 
 
 @router.get("/transactions", response_model=TransactionPage)
@@ -29,12 +29,12 @@ def list_transactions(
     offset: int = 0,
     db: Session = Depends(get_db),
 ):
-    """Elenco filtrato.
+    """Filtered listing.
 
-    Usa gli stessi filtri di `/stats/*`: i totali del riepilogo e le righe qui
-    sotto vengono sempre dalla stessa selezione. Nota: qui i giroconti **non**
-    sono esclusi — la lista mostra i movimenti veri del conto, l'esclusione
-    riguarda solo i totali di entrate e uscite.
+    Uses the same filters as `/stats/*`: the summary totals and the rows below
+    always come from the same selection. Note: transfers are **not** excluded
+    here — the list shows the account's real transactions, the exclusion only
+    applies to the income and expense totals.
     """
     total = db.scalar(apply_filters(select(func.count(Transaction.id)), filters)) or 0
     items = db.scalars(
@@ -50,11 +50,10 @@ def list_transactions(
     "/transactions", response_model=TransactionOut, status_code=status.HTTP_201_CREATED
 )
 def create_transaction(payload: TransactionCreate, db: Session = Depends(get_db)):
-    """Inserimento manuale.
+    """Manual entry.
 
-    Serve per il contante, che non lascia traccia digitale da importare.
-    Deve restare veloce: gli unici campi obbligatori sono conto, data,
-    importo e descrizione.
+    This is for cash, which leaves no digital trace to import. It has to stay
+    fast: the only required fields are account, date, amount and description.
     """
     if not db.get(Account, payload.account_id):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Account not found")
@@ -63,8 +62,8 @@ def create_transaction(payload: TransactionCreate, db: Session = Depends(get_db)
     if payload.amount == 0:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "The amount cannot be zero")
 
-    # Su inserimento manuale il "duplicato" è quasi sempre un doppio invio del
-    # form, non un dato vero: si cerca il primo slot di occorrenza libero.
+    # On manual entry a "duplicate" is nearly always a double form submission,
+    # not real data: we look for the first free occurrence slot.
     occurrence = 0
     while occurrence < 100:
         candidate = compute_dedup_hash(
@@ -110,11 +109,11 @@ def create_transaction(payload: TransactionCreate, db: Session = Depends(get_db)
 def set_category(
     transaction_id: int, payload: SetCategoryRequest, db: Session = Depends(get_db)
 ):
-    """Assegna una categoria a mano.
+    """Assigns a category by hand.
 
-    Marca `category_source='manual'`: da questo momento nessuna
-    riapplicazione delle regole potrà sovrascrivere la scelta.
-    Passare `category_id: null` rimuove la categoria e libera la riga.
+    Marks `category_source='manual'`: from now on no re-run of the rules can
+    overwrite the choice. Passing `category_id: null` removes the category and
+    frees the row.
     """
     transaction = db.get(Transaction, transaction_id)
     if not transaction:

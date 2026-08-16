@@ -1,7 +1,7 @@
-"""Configurazione letta dalle variabili d'ambiente (.env).
+"""Configuration read from environment variables (.env).
 
-Regola del progetto: **segreti nel .env, preferenze nel database**.
-Qui ci sta solo ciò che serve per avviarsi e collegarsi al DB.
+Project rule: **secrets in .env, preferences in the database**. Only what is
+needed to boot and reach the database lives here.
 """
 
 from functools import lru_cache
@@ -24,15 +24,15 @@ class Settings(BaseSettings):
     mysql_password: str = ""
 
     app_password: str = ""
-    # Il cookie di sessione va marcato `secure` solo dietro HTTPS: in
-    # sviluppo su http://localhost un cookie secure non verrebbe mai inviato
-    # e il login sembrerebbe rotto. Da mettere a true sulla VPS.
+    # The session cookie should only be marked `secure` behind HTTPS: in
+    # development on http://localhost a secure cookie is never sent and login
+    # would look broken. Set this to true on the VPS.
     cookie_secure: bool = False
     tz: str = "Europe/Rome"
 
     @property
     def database_url(self) -> str:
-        # quote_plus sulla password: se contiene @ o / l'URL si romperebbe.
+        # quote_plus on the password: an @ or / in it would break the URL.
         return (
             f"mysql+pymysql://{self.mysql_user}:{quote_plus(self.mysql_password)}"
             f"@{self.mysql_host}:{self.mysql_port}/{self.mysql_database}"

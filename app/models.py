@@ -1,8 +1,8 @@
-"""Modelli SQLAlchemy.
+"""SQLAlchemy models.
 
-Nota: la verità sullo schema sono i file in `db/migrations/`. Questi modelli
-servono a interrogare il database e vanno tenuti allineati a mano quando si
-aggiunge una migrazione.
+Note: the source of truth for the schema is the files in `db/migrations/`.
+These models exist to query the database and must be kept in sync by hand
+whenever a migration is added.
 """
 
 from datetime import date, datetime
@@ -36,10 +36,10 @@ class Account(Base):
     archived: Mapped[bool] = mapped_column(TINYINT(1), default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
-    # passive_deletes: la cancellazione a cascata la fa il database
-    # (ON DELETE CASCADE). Senza, SQLAlchemy tenta di svuotare la chiave
-    # esterna con UPDATE transactions SET account_id=NULL, che è NOT NULL e
-    # fa fallire l'eliminazione del conto.
+    # passive_deletes: the cascade delete is done by the database
+    # (ON DELETE CASCADE). Without it SQLAlchemy tries to empty the foreign
+    # key with UPDATE transactions SET account_id=NULL, which is NOT NULL and
+    # makes deleting an account fail.
     transactions: Mapped[list["Transaction"]] = relationship(
         back_populates="account",
         cascade="all, delete-orphan",
@@ -58,8 +58,8 @@ class Category(Base):
     color: Mapped[str] = mapped_column(String(7), default="#9e9e9e")
     icon: Mapped[str | None] = mapped_column(String(40), nullable=True)
     is_income: Mapped[bool] = mapped_column(TINYINT(1), default=0)
-    # Giroconti fra conti propri e saldi iniziali spostano soldi ma non sono
-    # spese: restano nei saldi, escluse dalle statistiche.
+    # Transfers between your own accounts and opening balances move money but
+    # are not spending: they stay in the balances, out of the statistics.
     exclude_from_stats: Mapped[bool] = mapped_column(TINYINT(1), default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
@@ -106,18 +106,18 @@ class ImportProfile(Base):
     col_amount: Mapped[str | None] = mapped_column(String(64), nullable=True)
     col_amount_in: Mapped[str | None] = mapped_column(String(64), nullable=True)
     col_amount_out: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    # --- 003: colonne opzionali emerse dai CSV reali ---
+    # --- 003: optional columns that emerged from real CSV exports ---
     col_external_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     col_mcc: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    # fee e tax stanno FUORI da amount in Trade Republic:
-    # importo effettivo = amount + fee + tax
+    # Some banks keep fees and taxes OUTSIDE the amount:
+    # effective amount = amount + fee + tax
     col_fee: Mapped[str | None] = mapped_column(String(64), nullable=True)
     col_tax: Mapped[str | None] = mapped_column(String(64), nullable=True)
     col_currency: Mapped[str | None] = mapped_column(String(64), nullable=True)
     col_category_hint: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    # caratteri da togliere prima di interpretare un importo (es. "€")
+    # characters to strip before parsing an amount (e.g. "€")
     currency_symbols: Mapped[str] = mapped_column(String(16), default="")
-    # Revolut chiude la sezione movimenti con una riga "Total"
+    # some statements close the transaction section with a "Total" row
     stop_at_value: Mapped[str | None] = mapped_column(String(64), nullable=True)
     skip_unparsable: Mapped[bool] = mapped_column(TINYINT(1), default=0)
     invert_sign: Mapped[bool] = mapped_column(TINYINT(1), default=0)
@@ -158,7 +158,7 @@ class Transaction(Base):
     )
     booked_at: Mapped[date] = mapped_column(Date)
     value_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    # negativo = uscita, positivo = entrata
+    # negative = money out, positive = money in
     amount: Mapped[Decimal] = mapped_column(Numeric(15, 2))
     currency: Mapped[str] = mapped_column(String(3), default="EUR")
     description: Mapped[str] = mapped_column(String(500))
@@ -169,8 +169,8 @@ class Transaction(Base):
     category_source: Mapped[str | None] = mapped_column(String(10), nullable=True)
     source: Mapped[str] = mapped_column(String(10))
     dedup_hash: Mapped[str] = mapped_column(String(64))
-    # id nativo della banca quando esiste (es. Trade Republic transaction_id):
-    # in quel caso dedup_hash = sha256(external_id)
+    # the bank's own id when the export provides one: in that case
+    # dedup_hash = sha256(external_id)
     external_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     mcc: Mapped[str | None] = mapped_column(String(4), nullable=True)
     raw: Mapped[dict | None] = mapped_column(JSON, nullable=True)

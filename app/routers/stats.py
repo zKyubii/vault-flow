@@ -1,5 +1,5 @@
-"""Aggregazioni per la dashboard. Tutti gli endpoint accettano gli stessi
-filtri di `/transactions`, così i totali corrispondono sempre alla lista."""
+"""Aggregations for the dashboard. Every endpoint accepts the same filters as
+`/transactions`, so the totals always match the list."""
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -8,12 +8,12 @@ from app.db import get_db
 from app.filters import TxFilters, tx_filters
 from app.services import stats as stats_service
 
-router = APIRouter(tags=["statistiche"])
+router = APIRouter(tags=["statistics"])
 
 
 @router.get("/stats/summary")
 def summary(
-    compare: bool = Query(False, description="Includi il confronto col periodo precedente"),
+    compare: bool = Query(False, description="Include the comparison with the previous period"),
     filters: TxFilters = Depends(tx_filters),
     db: Session = Depends(get_db),
 ):

@@ -1,4 +1,4 @@
-"""Rilevamenti automatici: abbonamenti e giroconti."""
+"""Automatic detection: subscriptions and transfers."""
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -7,7 +7,7 @@ from app.db import get_db
 from app.models import Category
 from app.services import detect as detect_service
 
-router = APIRouter(tags=["rilevamenti"])
+router = APIRouter(tags=["detection"])
 
 
 @router.get("/detect/subscriptions")
@@ -16,10 +16,10 @@ def subscriptions(
     months_back: int = Query(default=18, ge=1, le=120),
     db: Session = Depends(get_db),
 ):
-    """Addebiti ricorrenti a cadenza e importo regolari.
+    """Charges that recur with a regular cadence and a regular amount.
 
-    Servono entrambe le condizioni: Amazon compare ogni mese ma con importi da
-    6 a 1.157 €, e non è un abbonamento.
+    Both conditions are required: a big retailer shows up every month with
+    amounts from 6 to 1,157, and that is not a subscription.
     """
     return detect_service.detect_subscriptions(
         db, min_occurrences=min_occurrences, months_back=months_back
@@ -31,7 +31,8 @@ def transfers(
     window_days: int = Query(default=5, ge=0, le=30),
     db: Session = Depends(get_db),
 ):
-    """Coppie di movimenti uguali e opposti su conti diversi. Solo proposta."""
+    """Pairs of equal and opposite transactions on different accounts. A
+    proposal only."""
     return detect_service.detect_transfers(db, window_days=window_days)
 
 
@@ -42,10 +43,10 @@ def apply_transfers(
     transaction_ids: list[int] | None = Body(None, embed=True),
     db: Session = Depends(get_db),
 ):
-    """Marca le coppie rilevate con la categoria indicata.
+    """Marks the detected pairs with the given category.
 
-    `transaction_ids` limita l'operazione a movimenti specifici; omesso, vale
-    per tutte le coppie trovate. Le categorie scelte a mano restano intoccate.
+    `transaction_ids` limits the operation to specific transactions; omitted,
+    it applies to every pair found. Categories chosen by hand are untouched.
     """
     category = db.get(Category, category_id)
     if not category:

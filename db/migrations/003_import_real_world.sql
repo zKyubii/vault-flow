@@ -1,26 +1,26 @@
--- 003 — Adeguamenti emersi dai CSV reali (Trade Republic, Revolut).
+-- 003 — Adjustments that came out of real CSV exports.
 --
--- Motivazioni, tutte da dati veri e non da ipotesi:
+-- Every reason below comes from real data, not from guesswork:
 --
--- 1. Trade Republic espone `transaction_id`: un id nativo è una chiave di
---    deduplica migliore di qualsiasi hash calcolato. Lo salviamo in
---    `external_id`; `dedup_hash` diventa sha256(external_id) quando c'è,
---    così resta UN solo vincolo di unicità e UN solo percorso nel codice.
+-- 1. Some banks expose a `transaction_id`: a native id is a better
+--    de-duplication key than any computed hash. We store it in `external_id`;
+--    `dedup_hash` becomes sha256(external_id) when present, so there is still
+--    ONE uniqueness constraint and ONE code path.
 --
--- 2. Trade Republic espone anche `mcc_code`. L'assunzione precedente
---    ("l'MCC arriva solo dal PSD2") era sbagliata.
+-- 2. Some exports also carry `mcc_code`. The earlier assumption ("MCC only
+--    comes from PSD2") was wrong.
 --
--- 3. Trade Republic tiene `fee` e `tax` FUORI da `amount`. Esempio reale:
---    riga TAX_OPTIMIZATION con amount=0.00 e tax=-8.50 (bollo).
---    Importando solo `amount` si perderebbero quei soldi.
---    → importo effettivo = amount + fee + tax
+-- 3. Some banks keep `fee` and `tax` OUTSIDE `amount`. Real case: a stamp
+--    duty row with amount=0.00 and tax=-8.50. Importing only `amount` would
+--    lose that money.
+--    -> effective amount = amount + fee + tax
 --
--- 4. Revolut esporta un estratto conto multi-sezione: 62 righe di preambolo,
---    una riga finale "Total" da escludere, importi con simbolo valuta e
---    segno PRIMA del simbolo (-€19.41), date in inglese ("Mar 14, 2024").
+-- 4. Some statements are multi-section: dozens of preamble rows, a final
+--    "Total" row to exclude, amounts with a currency symbol and the sign
+--    BEFORE it (-€19.41), English dates ("Mar 14, 2024").
 --
--- 5. Sia Revolut che Trade Republic forniscono già una categoria propria:
---    utile come suggerimento iniziale, non come verità.
+-- 5. Several banks already provide a category of their own: useful as an
+--    initial hint, not as the truth.
 
 ALTER TABLE transactions
   ADD COLUMN external_id VARCHAR(128) NULL AFTER dedup_hash,
@@ -29,18 +29,18 @@ ALTER TABLE transactions
   ADD KEY idx_tx_mcc (mcc);
 
 ALTER TABLE import_profiles
-  -- colonne opzionali della sorgente
+  -- optional columns of the source file
   ADD COLUMN col_external_id VARCHAR(64) NULL AFTER col_amount_out,
   ADD COLUMN col_mcc VARCHAR(64) NULL AFTER col_external_id,
   ADD COLUMN col_fee VARCHAR(64) NULL AFTER col_mcc,
   ADD COLUMN col_tax VARCHAR(64) NULL AFTER col_fee,
   ADD COLUMN col_currency VARCHAR(64) NULL AFTER col_tax,
   ADD COLUMN col_category_hint VARCHAR(64) NULL AFTER col_currency,
-  -- caratteri da rimuovere prima di interpretare un importo (es. "€")
+  -- characters to strip before parsing an amount (e.g. "€")
   ADD COLUMN currency_symbols VARCHAR(16) NOT NULL DEFAULT '' AFTER col_category_hint,
-  -- se il valore della prima colonna è questo, l'import si ferma
-  -- (Revolut chiude la sezione movimenti con una riga "Total")
+  -- if the first column of a row equals this value, the import stops
+  -- (some statements close the transaction section with a "Total" row)
   ADD COLUMN stop_at_value VARCHAR(64) NULL AFTER currency_symbols,
-  -- righe che non si riescono a interpretare: saltarle invece di fallire
-  -- (necessario per i file multi-sezione tipo Revolut)
+  -- rows that cannot be parsed: skip them instead of failing
+  -- (required for multi-section files)
   ADD COLUMN skip_unparsable TINYINT(1) NOT NULL DEFAULT 0 AFTER stop_at_value;

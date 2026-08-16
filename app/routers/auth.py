@@ -25,7 +25,7 @@ from app.models import Setting
 from app.schemas import Message
 
 log = logging.getLogger("spese.auth")
-router = APIRouter(tags=["accesso"])
+router = APIRouter(tags=["auth"])
 
 
 def _set_cookie(response: Response, token: str) -> None:
@@ -36,9 +36,9 @@ def _set_cookie(response: Response, token: str) -> None:
         max_age=SESSION_DAYS * 86400,
         httponly=True,
         samesite="lax",
-        # In HTTPS deve stare a True. Non è il valore predefinito perché in
-        # sviluppo si gira su http://localhost e un cookie `secure` non
-        # verrebbe mai inviato, rendendo il login apparentemente rotto.
+        # Must be True over HTTPS. It is not the default because development
+        # runs on http://localhost, where a `secure` cookie would never be
+        # sent, making login look broken.
         secure=settings.cookie_secure,
         path="/",
     )
@@ -49,8 +49,8 @@ def me(
     db: Session = Depends(get_db),
     session: str | None = Cookie(default=None, alias=COOKIE_NAME),
 ):
-    """Stato dell'accesso. Sempre raggiungibile: è ciò che la PWA interroga
-    all'avvio per decidere se mostrare il login o la dashboard."""
+    """Sign-in state. Always reachable: this is what the PWA asks on startup
+    to decide whether to show the login or the dashboard."""
     authenticated = verify_token(get_secret(db), session)
     display_name = None
     if authenticated:
@@ -60,8 +60,8 @@ def me(
     return {
         "authenticated": authenticated,
         "display_name": display_name,
-        # se il .env è ancora quello di esempio l'interfaccia deve dirlo,
-        # invece di far sbattere l'utente su una password che non funziona
+        # if .env is still the shipped example the interface should say so,
+        # instead of letting the user bang on a password that cannot work
         "password_configured": password_is_configured(),
     }
 
@@ -105,8 +105,8 @@ def logout(response: Response):
 
 @router.post("/auth/logout-everywhere", response_model=Message)
 def logout_everywhere(response: Response, db: Session = Depends(get_db)):
-    """Rigenera il segreto di firma: invalida le sessioni su tutti i
-    dispositivi. Serve se si perde il telefono."""
+    """Regenerates the signing secret: invalidates sessions on every device.
+    Useful if you lose your phone."""
     reset_secret(db)
     response.delete_cookie(COOKIE_NAME, path="/")
     return Message(detail="All sessions have been closed")

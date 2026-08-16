@@ -1,9 +1,4 @@
-"""Entrypoint FastAPI.
-
-Fase 1: l'app si avvia, aspetta MySQL, applica le migrazioni ed espone
-/health per verificare che tutta la catena funzioni. Niente di più: le
-funzionalità arrivano dalla Fase 2.
-"""
+"""FastAPI entrypoint."""
 
 import logging
 from contextlib import asynccontextmanager
@@ -27,21 +22,21 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)-8s %(name)s: %(message)s",
 )
-log = logging.getLogger("spese")
+log = logging.getLogger("vaultflow")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    log.info("Avvio: attendo il database...")
+    log.info("Starting: waiting for the database...")
     wait_for_db()
     run_migrations()
     if not password_is_configured():
         log.warning(
-            "APP_PASSWORD non impostata (o lasciata a quella di esempio): "
-            "l'accesso è BLOCCATO finché non la cambi nel file .env. "
-            "Non deployare in questo stato."
+            "APP_PASSWORD is not set (or left at an example value): sign-in is "
+            "BLOCKED until you change it in the .env file. Do not deploy in "
+            "this state."
         )
-    log.info("Pronto.")
+    log.info("Ready.")
     yield
 
 
@@ -52,8 +47,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-
-# Le rotte di accesso sono pubbliche: sono la porta. Tutto il resto è chiuso.
+# The auth routes are public: they are the door. Everything else is locked.
 app.include_router(auth.router, prefix="/api")
 
 protected = [Depends(require_auth)]
@@ -64,18 +58,19 @@ app.include_router(rules.router, prefix="/api", dependencies=protected)
 app.include_router(stats.router, prefix="/api", dependencies=protected)
 app.include_router(detect.router, prefix="/api", dependencies=protected)
 
+
 class RevalidatingStaticFiles(StaticFiles):
-    """File statici con `Cache-Control: no-cache`.
+    """Static files served with `Cache-Control: no-cache`.
 
-    Senza un header esplicito il browser applica la *cache euristica*: tiene i
-    file per una frazione del loro tempo di vita, senza chiedere nulla al
-    server. In sviluppo significa modifiche che non si vedono; in produzione
-    utenti bloccati sul JavaScript vecchio dopo un aggiornamento.
+    Without an explicit header the browser applies *heuristic caching*: it
+    keeps files for a fraction of their lifetime without asking the server. In
+    development that means edits that never show up; in production, users
+    stuck on old JavaScript after an update.
 
-    `no-cache` non vuol dire "non mettere in cache": vuol dire "chiedimi prima
-    di riusarlo". Con l'ETag la risposta è un 304 vuoto, quindi il costo è una
-    richiesta minima e i file restano in cache locale.
-    L'offline è compito del service worker, non di questa cache.
+    `no-cache` does not mean "do not cache": it means "ask me before reusing
+    it". With the ETag the answer is an empty 304, so the cost is one minimal
+    request and the files stay in the local cache.
+    Offline is the service worker's job, not this cache's.
     """
 
     def file_response(self, *args, **kwargs):
@@ -94,18 +89,18 @@ def index():
 
 @app.get("/sw.js", include_in_schema=False)
 def service_worker():
-    """Il service worker deve stare alla radice per poter controllare "/".
+    """The service worker must live at the root to be able to control "/".
 
-    Servito da /static non potrebbe intercettare la navigazione sulla home.
+    Served from /static it could not intercept navigation to the home page.
     """
     return FileResponse(
         STATIC_DIR / "sw.js",
         media_type="application/javascript",
         headers={
             "Service-Worker-Allowed": "/",
-            # Il service worker decide cosa vede l'utente: se resta in cache,
-            # resta in cache anche la strategia sbagliata che si voleva
-            # correggere. Va sempre rivalidato.
+            # The service worker decides what the user sees: if it stays
+            # cached, so does the wrong strategy you were trying to fix. It
+            # must always be revalidated.
             "Cache-Control": "no-cache",
         },
     )
@@ -113,11 +108,11 @@ def service_worker():
 
 @app.get("/health")
 def health(db: Session = Depends(get_db)) -> dict:
-    """Verifica che app e database si parlino.
+    """Checks that the app and the database can talk to each other.
 
-    **Pubblica e volutamente muta**: serve al monitoraggio, quindi non deve
-    rivelare né il nome dell'utente né quanti movimenti ci sono dentro. I
-    conteggi stanno in `/api/stats/*`, dietro autenticazione.
+    **Public and deliberately silent**: it exists for monitoring, so it must
+    not reveal the user's name or how many transactions are inside. The counts
+    live in `/api/health/details`, behind authentication.
     """
     db.execute(select(1))
     return {"status": "ok"}

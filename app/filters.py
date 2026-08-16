@@ -1,9 +1,8 @@
-"""Filtri condivisi fra movimenti e statistiche.
+"""Filters shared between transactions and statistics.
 
-Un solo posto che li definisce e li applica: se il riepilogo e la lista
-filtrassero in modo anche leggermente diverso, i totali non corrisponderebbero
-a ciò che si vede sotto — ed è il tipo di incoerenza che fa perdere fiducia
-nei numeri.
+One place defines and applies them: if the summary and the list filtered even
+slightly differently, the totals would not match the rows underneath them —
+and that is the kind of inconsistency that destroys trust in the numbers.
 """
 
 from __future__ import annotations
@@ -32,13 +31,13 @@ class TxFilters:
 
 
 def tx_filters(
-    date_from: date | None = Query(None, description="Dal giorno (compreso)"),
-    date_to: date | None = Query(None, description="Al giorno (compreso)"),
-    account_ids: list[int] | None = Query(None, description="Uno o più conti"),
-    category_ids: list[int] | None = Query(None, description="Una o più categorie"),
-    kind: Kind = Query("all", description="Solo entrate, solo uscite, o tutto"),
-    search: str | None = Query(None, description="Testo nella descrizione"),
-    uncategorized: bool = Query(False, description="Solo quelle senza categoria"),
+    date_from: date | None = Query(None, description="From this day (inclusive)"),
+    date_to: date | None = Query(None, description="To this day (inclusive)"),
+    account_ids: list[int] | None = Query(None, description="One or more accounts"),
+    category_ids: list[int] | None = Query(None, description="One or more categories"),
+    kind: Kind = Query("all", description="Income only, expenses only, or everything"),
+    search: str | None = Query(None, description="Text in the description"),
+    uncategorized: bool = Query(False, description="Only the ones without a category"),
 ) -> TxFilters:
     return TxFilters(
         date_from=date_from,
@@ -83,11 +82,11 @@ def apply_filters(query: Select, filters: TxFilters) -> Select:
 
 
 def apply_exclusion(query: Select, filters: TxFilters, excluded: set[int]) -> Select:
-    """Toglie giroconti e simili dai totali.
+    """Removes transfers and the like from the totals.
 
-    **Salvo che l'utente li abbia chiesti esplicitamente**: se selezioni la
-    categoria "Trasferimenti" nel filtro, vuoi vederla — nasconderla sarebbe
-    l'app che contraddice il tuo click.
+    **Unless the user asked for them explicitly**: if you select the
+    "Transfers" category in the filter you want to see it — hiding it would be
+    the app contradicting your click.
     """
     if not excluded or filters.category_ids:
         return query

@@ -1,27 +1,26 @@
 // Service worker.
 //
-// Strategia: **rete per prima, cache come rete di scorta**, per tutto.
+// Strategy: **network first, cache as a fallback**, for everything.
 //
-// La versione precedente serviva il guscio dell'app dalla cache e aggiornava
-// in sottofondo. Sembra più veloce, ma dopo ogni aggiornamento il primo
-// avvio esegue il codice vecchio contro un'API cambiata: è così che, appena
-// introdotto il login, l'app ha mostrato "Autenticazione richiesta" invece
-// della schermata di accesso — il JavaScript in cache non sapeva che il
-// login esistesse.
+// The previous version served the app shell from cache and refreshed in the
+// background. It looks faster, but after every update the first load runs the
+// old code against a changed API: that is how, right after login was added,
+// the app showed "Authentication required" instead of the sign-in screen —
+// the cached JavaScript had no idea login existed.
 //
-// Su un'app self-hosted (rete locale o VPS propria) il costo di chiedere
-// sempre al server è di pochi millisecondi. La correttezza vale molto di
-// più. Se la rete non risponde entro NETWORK_TIMEOUT si usa la cache, quindi
-// l'uso offline resta intatto: è il requisito "consulto i dati già
-// sincronizzati senza connessione".
+// On a self-hosted app (home network or your own VPS) always asking the
+// server costs a few milliseconds. Correctness is worth far more. If the
+// network does not answer within NETWORK_TIMEOUT we fall back to the cache,
+// so offline use is intact: that is the "read already-synced data without a
+// connection" requirement.
 //
-// Le scritture (POST/PUT/DELETE) non vengono mai messe in coda: fallire
-// subito con un messaggio chiaro è più onesto che far credere all'utente di
-// aver salvato qualcosa che potrebbe non arrivare mai.
+// Writes (POST/PUT/DELETE) are never queued: failing immediately with a clear
+// message is more honest than letting someone believe they saved something
+// that may never arrive.
 
 const VERSION = "v4";
-const SHELL_CACHE = `spese-shell-${VERSION}`;
-const DATA_CACHE = `spese-data-${VERSION}`;
+const SHELL_CACHE = `vaultflow-shell-${VERSION}`;
+const DATA_CACHE = `vaultflow-data-${VERSION}`;
 const NETWORK_TIMEOUT = 2500;
 
 const SHELL = [
@@ -46,8 +45,8 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(SHELL_CACHE)
-      // addAll fallisce in blocco se manca un file: si preferisce installare
-      // comunque ciò che c'è
+      // addAll fails as a whole if a single file is missing: we prefer to
+      // install whatever is available
       .then((cache) => Promise.allSettled(SHELL.map((url) => cache.add(url))))
       .then(() => self.skipWaiting())
   );
@@ -67,8 +66,8 @@ self.addEventListener("activate", (event) => {
       .then(() => self.clients.claim())
       .then(() => self.clients.matchAll({ type: "window" }))
       .then((clients) => {
-        // le schede già aperte stanno eseguendo il codice vecchio: si
-        // ricaricano da sole invece di restare in uno stato incoerente
+        // Tabs that are already open are still running the old code: they
+        // reload themselves rather than sit in an inconsistent state.
         for (const client of clients) client.postMessage({ type: "sw-updated" });
       })
   );
@@ -97,14 +96,15 @@ async function networkFirst(request, cacheName) {
     const cached = await caches.match(request);
     if (cached) return cached;
 
-    // navigazione senza rete e senza copia della pagina: si ripiega sul guscio
+    // Navigating with no network and no cached copy of the page: fall back
+    // to the app shell.
     if (request.mode === "navigate") {
       const shell = await caches.match("/static/index.html");
       if (shell) return shell;
     }
     if (request.url.includes("/api/")) {
       return new Response(
-        JSON.stringify({ detail: "Sei offline e questi dati non sono ancora stati scaricati" }),
+        JSON.stringify({ detail: "You are offline and this data has not been downloaded yet" }),
         { status: 503, headers: { "Content-Type": "application/json" } }
       );
     }

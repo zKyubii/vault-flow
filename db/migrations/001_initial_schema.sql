@@ -1,5 +1,5 @@
--- 001 — Schema iniziale
--- Tutti gli importi sono DECIMAL: mai FLOAT sui soldi (0.1 + 0.2 != 0.3).
+-- 001 — Initial schema
+-- Every amount is DECIMAL: never FLOAT for money (0.1 + 0.2 != 0.3).
 
 CREATE TABLE accounts (
   id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -45,7 +45,7 @@ CREATE TABLE category_rules (
     REFERENCES accounts(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- La mappatura colonne salvata: il cuore dell'import CSV generico.
+-- The saved column mapping: the heart of the generic CSV import.
 CREATE TABLE import_profiles (
   id                  INT UNSIGNED NOT NULL AUTO_INCREMENT,
   name                VARCHAR(100) NOT NULL,
@@ -57,8 +57,8 @@ CREATE TABLE import_profiles (
   date_format         VARCHAR(32) NOT NULL DEFAULT '%d/%m/%Y',
   decimal_separator   CHAR(1) NOT NULL DEFAULT ',',
   thousands_separator CHAR(1) NULL,
-  -- 'signed'  = una sola colonna importo, col segno (Revolut & co.)
-  -- 'separate'= due colonne, Entrate e Uscite (molte banche italiane)
+  -- 'signed'   = one amount column carrying the sign
+  -- 'separate' = two columns, money in and money out (common in Italy)
   amount_mode         ENUM('signed','separate') NOT NULL DEFAULT 'signed',
   col_date            VARCHAR(64) NOT NULL,
   col_description     VARCHAR(64) NOT NULL,
@@ -66,7 +66,7 @@ CREATE TABLE import_profiles (
   col_amount          VARCHAR(64) NULL,
   col_amount_in       VARCHAR(64) NULL,
   col_amount_out      VARCHAR(64) NULL,
-  -- alcune banche esportano le spese come numeri positivi
+  -- some banks export expenses as positive numbers
   invert_sign         TINYINT(1) NOT NULL DEFAULT 0,
   created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -76,7 +76,7 @@ CREATE TABLE import_profiles (
     REFERENCES accounts(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Storico delle importazioni: serve a poter annullare un import sbagliato.
+-- Import history: this is what makes it possible to undo a bad import.
 CREATE TABLE import_runs (
   id             INT UNSIGNED NOT NULL AUTO_INCREMENT,
   profile_id     INT UNSIGNED NULL,
@@ -102,19 +102,19 @@ CREATE TABLE transactions (
   import_run_id   INT UNSIGNED NULL,
   booked_at       DATE NOT NULL,
   value_date      DATE NULL,
-  -- negativo = uscita, positivo = entrata. SUM(amount) = saldo.
+  -- negative = money out, positive = money in. SUM(amount) = balance.
   amount          DECIMAL(15,2) NOT NULL,
   currency        CHAR(3) NOT NULL DEFAULT 'EUR',
   description     VARCHAR(500) NOT NULL,
   counterparty    VARCHAR(255) NULL,
   category_id     INT UNSIGNED NULL,
-  -- 'manual' = categoria scelta dall'utente: la ricategorizzazione
-  -- automatica NON deve sovrascriverla.
+  -- 'manual' = category chosen by the user: re-running the rules must never
+  -- overwrite it.
   category_source ENUM('rule','manual') NULL,
   source          ENUM('manual','csv') NOT NULL,
-  -- SHA-256 di (data + importo + descrizione normalizzata + n. occorrenza).
-  -- Il vincolo UNIQUE fa rifiutare i duplicati al DB, senza doversi fidare
-  -- del codice applicativo.
+  -- SHA-256 of (date + amount + normalised description + occurrence number).
+  -- The UNIQUE constraint makes the database reject duplicates, so we do not
+  -- have to trust the application code.
   dedup_hash      CHAR(64) NOT NULL,
   raw             JSON NULL,
   notes           TEXT NULL,
@@ -134,7 +134,7 @@ CREATE TABLE transactions (
     REFERENCES import_runs(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Preferenze dell'app (NON segreti: quelli stanno nel .env).
+-- App preferences (NOT secrets: those live in .env).
 CREATE TABLE settings (
   setting_key VARCHAR(64) NOT NULL,
   value       TEXT NULL,
