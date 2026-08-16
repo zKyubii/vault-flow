@@ -1,0 +1,39 @@
+# Esempio di reverse proxy con Caddy.
+#
+# Perché Caddy e non nginx: ottiene e rinnova da solo il certificato HTTPS da
+# Let's Encrypt, senza certbot né cron. Per un'app personale è tre righe
+# invece di trenta.
+#
+# Uso:
+#   1. installa Caddy sulla VPS
+#   2. copia questo file in /etc/caddy/Caddyfile e cambia il dominio
+#   3. sudo systemctl reload caddy
+#
+# Il dominio deve già puntare all'IP della VPS (record A), altrimenti la
+# richiesta del certificato fallisce.
+
+spese.tuodominio.it {
+    encode zstd gzip
+
+    # L'app ascolta solo su localhost: da fuori si passa per forza da qui.
+    reverse_proxy 127.0.0.1:8000
+
+    # Intestazioni di sicurezza. Non sono decorazione: questa app mostra
+    # l'elenco completo di dove spendi i soldi.
+    header {
+        # obbliga il browser a usare HTTPS per un anno
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        # vieta di incorniciare il sito altrove (clickjacking)
+        X-Frame-Options "DENY"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "same-origin"
+        # l'app non carica nulla da domini esterni: vietarlo rende inutile
+        # un eventuale tentativo di iniezione
+        Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self'"
+        -Server
+    }
+
+    log {
+        output file /var/log/caddy/spese.log
+    }
+}

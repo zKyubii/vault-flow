@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="aqua" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#21d4b4"/>
+      <stop offset="100%" stop-color="#4d8dff"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#080c10"/>
+  <rect x="12" y="12" width="488" height="488" rx="102" fill="none" stroke="url(#aqua)" stroke-width="6" opacity="0.5"/>
+  <g fill="none" stroke="url(#aqua)" stroke-width="32" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M112 336 L200 248 L272 302 L400 172"/>
+    <path d="M334 172 H400 V238"/>
+  </g>
+  <circle cx="200" cy="248" r="18" fill="#45e07a"/>
+  <circle cx="272" cy="302" r="18" fill="#45e07a"/>
+</svg>

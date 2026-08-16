@@ -1,0 +1,54 @@
+# === SEGRETI — mai committare ===
+.env
+*.env
+!.env.example
+
+# Chiavi e certificati (anche se il PSD2 non è implementato: prevenzione)
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+
+# === DATI BANCARI ===
+# Gli export della banca NON devono mai finire nel repo pubblico.
+# Blocco tutti i CSV per default: se un file di test serve, va in
+# tests/fixtures/ con dati inventati.
+*.csv
+*.xlsx
+*.ofx
+*.qif
+!tests/fixtures/*.csv
+uploads/
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# === Docker / DB ===
+db_data/
+*.sql
+*.sql.gz
+backups/
+
+# === APPUNTI DI LAVORO — NON PUBBLICARE ===
+# CLAUDE.md contiene dati finanziari reali: saldi dei conti, tabelle di
+# movimenti con date e importi, nomi di negozi presi dagli estratti conto e
+# nomi di persone reali comparse nei bonifici. Su un repo pubblico sarebbe
+# tutto leggibile da chiunque, e i dati di terzi non sono nostri da
+# pubblicare.
+#
+# La documentazione pubblica del progetto è il README.md.
+CLAUDE.md
+
+# === Editor / OS ===
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

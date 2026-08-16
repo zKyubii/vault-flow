@@ -1,0 +1,693 @@
+﻿/* =========================================================================
+   Dashboard Spese — tema "acqua"
+   Struttura ispirata a un sito personale (griglia sfumata, aloni,
+   gradienti, vetro smerigliato), palette virata su **verde acqua → blu** su
+   fondo freddo.
+
+   Bagliori usati con parsimonia: solo sugli elementi vivi (tab attiva,
+   pulsante primario, saldo, pallini categoria). Se brilla tutto non brilla
+   niente, e una lista di 400 movimenti diventa illeggibile.
+
+   Gli importi usano il font del testo con `tabular-nums`, non un font da
+   codice: si allineano lo stesso senza l'aria da terminale.
+
+   Mobile-first. Tema scuro unico: questa palette è pensata per il fondo
+   scuro, su fondo chiaro i colori accesi si spengono.
+   ========================================================================= */
+
+/* I font del sito personale sono nominati per primi nello stack: se sono
+   installati sul dispositivo vengono usati, altrimenti si ricade sui font di
+   sistema senza che nulla si rompa.
+
+   Per averli davvero (anche offline, senza dipendere da Google Fonts che
+   romperebbe la PWA e aggiungerebbe una richiesta esterna a un progetto
+   self-hosted): scaricare i .woff2 da fonts.google.com in
+   app/static/fonts/ e togliere il commento qui sotto.
+
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("/static/fonts/SpaceGrotesk-Variable.woff2") format("woff2");
+  font-weight: 300 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/static/fonts/JetBrainsMono-Variable.woff2") format("woff2");
+  font-weight: 400 700;
+  font-display: swap;
+}
+*/
+
+:root {
+  --bg: #080c10;          /* quasi nero, freddo */
+  --bg-soft: #0f161c;
+  --surface: rgba(19, 28, 35, 0.72);
+  --surface-solid: #121a21;
+  --surface-2: rgba(38, 54, 64, 0.5);
+  --text: #e8f0f2;
+  --text-dim: #8296a0;
+  --border: rgba(72, 116, 128, 0.26);
+  --border-strong: rgba(33, 212, 180, 0.38);
+
+  --accent: #21d4b4;      /* verde acqua */
+  --accent-2: #4d8dff;    /* blu */
+  --pos: #45e07a;         /* verde entrate, più erba del verde acqua
+                             per non confondersi con l'accento */
+  --neg: #ff6b5a;         /* corallo: complementare del verde acqua */
+
+  --radius: 18px;
+  --radius-sm: 12px;
+  --tabbar-h: 66px;
+
+  --glow-accent: 0 0 24px rgba(33, 212, 180, 0.42);
+  --glow-pos: 0 0 18px rgba(69, 224, 122, 0.35);
+
+  --font: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* I numeri NON usano un font da codice: resta lo stesso carattere del
+     testo, con le cifre a larghezza fissa (`tabular-nums`). Le colonne di
+     importi si allineano lo stesso, ma senza l'aria da terminale. */
+  --num: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  overflow-x: hidden;
+}
+
+h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
+
+/* --------------------------------------------------------------- sfondo */
+
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(33, 212, 180, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(77, 141, 255, 0.045) 1px, transparent 1px);
+  background-size: 52px 52px;
+  mask-image: radial-gradient(ellipse 90% 55% at 50% 0%, #000 35%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 90% 55% at 50% 0%, #000 35%, transparent 100%);
+}
+
+.bg-glow {
+  position: fixed;
+  z-index: -2;
+  pointer-events: none;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.5;
+}
+.bg-glow.one {
+  top: -160px; left: -110px;
+  width: 340px; height: 340px;
+  background: radial-gradient(circle, rgba(33, 212, 180, 0.5), transparent 70%);
+}
+.bg-glow.two {
+  top: 24vh; right: -140px;
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(77, 141, 255, 0.28), transparent 70%);
+}
+
+/* --------------------------------------------------------------- topbar */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  padding-top: max(14px, env(safe-area-inset-top));
+  background: rgba(8, 12, 16, 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+}
+.topbar h1 {
+  font-size: 1.3rem;
+  background: linear-gradient(110deg, var(--accent-2), var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.topbar-actions { display: flex; gap: 8px; }
+
+.offline-bar {
+  padding: 9px 16px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  color: #04141a;
+  font-weight: 600;
+  font-size: .8rem;
+  text-align: center;
+}
+
+/* ----------------------------------------------------------------- view */
+
+.view { padding: 16px; max-width: 820px; margin: 0 auto; }
+
+.card {
+  position: relative;
+  background: var(--surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 14px;
+  animation: rise .32s ease both;
+}
+/* filo di luce sul bordo superiore: dà spessore senza aggiungere rumore */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: linear-gradient(90deg, transparent, rgba(77, 141, 255, 0.35), transparent);
+}
+.card h2 {
+  font-size: .78rem;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+.view > *:nth-child(2) { animation-delay: .03s; }
+.view > *:nth-child(3) { animation-delay: .06s; }
+.view > *:nth-child(4) { animation-delay: .09s; }
+.view > *:nth-child(5) { animation-delay: .12s; }
+
+.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.stack { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+.amount {
+  font-family: var(--num);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: -0.02em;
+}
+.amount.neg { color: var(--neg); }
+.amount.pos { color: var(--pos); }
+
+.muted { color: var(--text-dim); font-size: .8rem; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* --------------------------------------------------------------- totali */
+
+.totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.total-box {
+  position: relative;
+  background: var(--surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 13px 10px;
+  text-align: center;
+  overflow: hidden;
+  animation: rise .32s ease both;
+}
+.total-box .label {
+  font-size: .64rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  font-weight: 600;
+}
+.total-box .value {
+  font-family: var(--num);
+  font-size: 1rem;
+  margin-top: 5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+/* Il saldo è il numero protagonista, ma si distingue per **peso**, non con un
+   bagliore: quando è negativo un alone rosso sembra un allarme invece di un
+   dato, e sposta l'attenzione su una cosa che spesso è normalissima. */
+.total-box:last-child .value { font-size: 1.1rem; font-weight: 700; }
+
+.total-delta { font-size: .64rem; margin-top: 3px; font-weight: 700; letter-spacing: .02em; }
+.total-delta.up { color: var(--neg); }
+.total-delta.down { color: var(--pos); }
+.mini-delta { font-family: var(--num); font-size: .66rem; font-weight: 600; opacity: .9; }
+.mini-delta.up { color: var(--neg); }
+.mini-delta.down { color: var(--pos); }
+
+/* --------------------------------------------------------------- barre */
+
+.bar-row { margin-bottom: 13px; }
+.bar-track {
+  height: 7px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-top: 7px;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  filter: saturate(1.15);
+  box-shadow: 0 0 10px currentColor;
+  animation: grow .5s cubic-bezier(.2,.8,.3,1) both;
+}
+@keyframes grow { from { width: 0 !important; } }
+
+.bar-row.clickable { cursor: pointer; border-radius: 8px; transition: background .15s; }
+.bar-row.clickable:hover { background: rgba(33, 212, 180, 0.06); }
+.bar-row.clickable:active { opacity: .6; }
+
+/* -------------------------------------------------------------- grafici */
+
+/* `overflow: visible` è obbligatorio: un SVG ritaglia i filtri al proprio
+   riquadro, quindi il bagliore della fetta selezionata veniva tagliato di
+   netto e si vedeva un bordo quadrato attorno al grafico. */
+.donut {
+  display: block;
+  width: 200px;
+  height: 200px;
+  margin: 10px auto 16px;
+  overflow: visible;
+}
+.donut-label {
+  fill: var(--text);
+  font-size: 17px;
+  font-weight: 650;
+  font-family: var(--num);
+  letter-spacing: -0.04em;
+}
+.donut-sub { fill: var(--text-dim); font-size: 10px; font-family: var(--font); }
+.donut-slice {
+  cursor: pointer;
+  transition: stroke-width .18s cubic-bezier(.2,.8,.3,1), opacity .18s;
+}
+/* L'evidenziazione è gestita dal JavaScript, non da `:hover`: sul telefono
+   il passaggio del cursore non esiste, e una regola CSS lascerebbe il
+   grafico morto al tocco. Si agisce per contrasto (le altre fette
+   sbiadiscono) invece che con un alone: più leggibile e senza regioni di
+   filtro da ritagliare. */
+
+.chart-wrap { position: relative; }
+
+.monthchart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 7px;
+  height: 138px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+/* `max-width` è quello che conta: con due soli mesi le colonne si
+   allargherebbero in due lastroni larghi mezza schermata. */
+.monthcol {
+  flex: 1 1 30px;
+  max-width: 54px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background .15s;
+}
+.monthcol:hover, .monthcol.active { background: rgba(33, 212, 180, 0.08); }
+.monthcol.active .mb { filter: brightness(1.25); }
+.monthbars { flex: 1; display: flex; align-items: flex-end; gap: 3px; width: 100%; padding: 0 3px; }
+
+.chart-tip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  z-index: 5;
+  min-width: 165px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(8, 12, 16, 0.96);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, .55);
+  font-size: .78rem;
+  pointer-events: none;
+  animation: rise .16s ease both;
+}
+.chart-tip .tip-month {
+  font-size: .66rem;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--accent);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.chart-tip .tip-net { border-top: 1px solid var(--border); margin-top: 5px; padding-top: 5px; }
+.mb { flex: 1; border-radius: 4px 4px 0 0; min-height: 2px; animation: growY .5s cubic-bezier(.2,.8,.3,1) both; }
+.mb.pos { background: linear-gradient(180deg, var(--pos), rgba(69, 224, 122, .35)); box-shadow: 0 0 8px rgba(69,224,122,.3); }
+.mb.neg { background: linear-gradient(180deg, var(--neg), rgba(255, 107, 90, .3)); }
+@keyframes growY { from { height: 0 !important; } }
+.monthlabel { font-size: .6rem; color: var(--text-dim); margin-top: 6px; white-space: nowrap; font-family: var(--num); }
+
+/* ------------------------------------------------------- lista movimenti */
+
+.tx {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid rgba(120, 88, 62, 0.16);
+  cursor: pointer;
+  transition: background .15s;
+}
+.tx:last-child { border-bottom: 0; }
+.tx:hover { background: rgba(33, 212, 180, 0.045); }
+.tx-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  box-shadow: 0 0 8px currentColor;
+}
+.tx-main { flex: 1; min-width: 0; }
+.tx-desc { font-size: .92rem; font-weight: 500; }
+.tx.open { background: rgba(33, 212, 180, 0.07); border-radius: 10px; }
+.tx-detail { padding: 6px 0 12px; }
+
+.date-head {
+  font-size: .68rem;
+  color: var(--accent-2);
+  margin: 18px 0 6px;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  font-weight: 600;
+  opacity: .8;
+}
+
+.rule-offer {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(33, 212, 180, 0.07);
+  border: 1px dashed var(--border-strong);
+  animation: rise .25s ease both;
+}
+
+/* ------------------------------------------------------------ controlli */
+
+button, .btn {
+  font: inherit;
+  font-family: var(--font);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 10px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  min-height: 42px;
+  font-weight: 500;
+  transition: transform .15s, box-shadow .2s, background .2s, border-color .2s;
+}
+button:hover { border-color: var(--border-strong); }
+button:active { transform: scale(.97); }
+button.primary, .btn.primary {
+  background: linear-gradient(115deg, var(--accent), var(--accent-2));
+  border-color: transparent;
+  color: #04141a;
+  font-weight: 700;
+}
+button.primary:hover { transform: translateY(-2px); box-shadow: var(--glow-accent); }
+button.danger { color: var(--neg); }
+button:disabled { opacity: .42; cursor: not-allowed; transform: none; box-shadow: none; }
+button.small { min-height: 34px; padding: 6px 13px; font-size: .81rem; }
+
+input, select, textarea {
+  font: inherit;
+  font-family: var(--font);
+  width: 100%;
+  padding: 11px 13px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: rgba(8, 12, 16, 0.55);
+  color: var(--text);
+  min-height: 44px;
+  transition: border-color .18s, box-shadow .18s;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(33, 212, 180, 0.14);
+}
+input[type="number"], input[type="date"] { font-family: var(--num); font-variant-numeric: tabular-nums; }
+label {
+  display: block;
+  font-size: .7rem;
+  color: var(--text-dim);
+  margin: 12px 0 5px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-weight: 600;
+}
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.chip {
+  border: 1px solid var(--border);
+  background: rgba(8, 12, 16, 0.5);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: .82rem;
+  cursor: pointer;
+  min-height: 36px;
+  color: var(--text-dim);
+}
+.chip:hover { color: var(--text); border-color: var(--border-strong); }
+.chip.active {
+  background: linear-gradient(115deg, var(--accent), var(--accent-2));
+  border-color: transparent;
+  color: #04141a;
+  font-weight: 650;
+  box-shadow: 0 0 16px rgba(33, 212, 180, 0.3);
+}
+
+.inline-select { min-height: 36px; padding: 6px 11px; width: auto; flex: 1; }
+
+pre.filelines {
+  background: rgba(8, 12, 16, 0.6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 11px;
+  overflow-x: auto;
+  font-family: var(--num);
+  font-size: .72rem;
+  line-height: 1.55;
+  max-height: 260px;
+  margin: 0;
+}
+pre.filelines b { color: var(--accent-2); }
+
+table.preview { width: 100%; border-collapse: collapse; font-size: .79rem; }
+table.preview th {
+  text-align: left;
+  color: var(--text-dim);
+  font-weight: 600;
+  padding: 7px 4px;
+  text-transform: uppercase;
+  font-size: .66rem;
+  letter-spacing: .08em;
+}
+table.preview td { padding: 7px 4px; border-top: 1px solid var(--border); }
+table.preview tr.dup { opacity: .38; }
+.scroll-x { overflow-x: auto; }
+
+/* ------------------------------------------------------- barra filtri */
+
+.filterbar {
+  background: var(--surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.filter-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  text-align: left;
+  font-size: .85rem;
+  padding: 13px 15px;
+  color: var(--text-dim);
+}
+.filter-toggle:hover { color: var(--text); }
+.filter-toggle.filtered { color: var(--accent-2); font-weight: 600; }
+.filter-caret { font-size: .55rem; opacity: .6; flex: 0 0 auto; }
+.filter-panel { padding: 0 15px 15px; border-top: 1px solid var(--border); }
+.filter-panel label:first-child { margin-top: 13px; }
+
+/* --------------------------------------------------------------- tabbar */
+
+.tabbar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  display: flex;
+  background: rgba(8, 12, 16, 0.82);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 20;
+}
+.tabbar a {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: var(--tabbar-h);
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: .64rem;
+  letter-spacing: .02em;
+  transition: color .18s;
+}
+.tabbar a.active { color: var(--accent); }
+/* filo luminoso sopra la tab attiva */
+.tabbar a.active::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 34px;
+  height: 2px;
+  border-radius: 0 0 3px 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  box-shadow: var(--glow-accent);
+}
+.tabbar a.active svg { filter: drop-shadow(0 0 6px rgba(33, 212, 180, .6)); }
+.tabbar svg {
+  width: 22px; height: 22px;
+  fill: none; stroke: currentColor; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+  transition: filter .18s;
+}
+.tabbar .tab-primary svg { stroke-width: 2.4; }
+
+/* ----------------------------------------------------------------- toast */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--tabbar-h) + 18px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  background: rgba(18, 26, 33, 0.96);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  padding: 11px 17px;
+  border-radius: 999px;
+  font-size: .85rem;
+  z-index: 50;
+  max-width: 90vw;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, .5), var(--glow-accent);
+  animation: rise .22s ease both;
+}
+.toast.error { border-color: var(--neg); box-shadow: 0 8px 32px rgba(0,0,0,.5), 0 0 20px rgba(255,107,90,.35); }
+
+/* ---------------------------------------------------------------- accesso */
+
+/* Finché non si è dentro, barra e navigazione spariscono: mostrare le schede
+   a chi non è autenticato significherebbe solo farle fallire tutte. */
+body.locked .topbar,
+body.locked .tabbar,
+body.locked .view { display: none; }
+body.locked { padding-bottom: 0; }
+
+.login-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 40;
+}
+.login-card {
+  width: 100%;
+  max-width: 340px;
+  background: var(--surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 22px;
+  text-align: center;
+  animation: rise .35s ease both;
+}
+.login-logo img { border-radius: 16px; box-shadow: var(--glow-accent); }
+.login-title {
+  font-size: 1.15rem;
+  margin: 14px 0 18px;
+  background: linear-gradient(110deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.login-card label { text-align: left; }
+.login-error {
+  margin-top: 10px;
+  padding: 9px 11px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 107, 90, 0.12);
+  border: 1px solid rgba(255, 107, 90, 0.4);
+  color: var(--neg);
+  font-size: .8rem;
+  text-align: left;
+}
+
+.empty { text-align: center; color: var(--text-dim); padding: 40px 20px; font-size: .88rem; }
+.spinner { text-align: center; color: var(--text-dim); padding: 30px; font-size: .85rem; }
+
+/* -------------------------------------------------------------- desktop */
+
+@media (min-width: 760px) {
+  .view { padding: 22px 16px; }
+  .totals { gap: 12px; }
+  .total-box .value { font-size: 1.15rem; }
+}
+
+/* Chi ha chiesto meno animazioni non deve subirle: è una preferenza di
+   accessibilità, non un vezzo. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

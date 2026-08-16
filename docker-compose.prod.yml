@@ -1,0 +1,28 @@
+# Sovrascrittura per la produzione.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Indicando i file esplicitamente, docker-compose.override.yml (gli extra di
+# sviluppo: codice montato dall'host, ricarica automatica) resta fuori. Quello
+# che gira è esattamente ciò che è stato costruito nell'immagine.
+
+services:
+  db:
+    restart: always
+
+  app:
+    restart: always
+    ports:
+      # Legata a 127.0.0.1: dall'esterno questa porta NON esiste.
+      #
+      # Con Tailscale è `tailscale serve` a pubblicarla, e solo verso i tuoi
+      # dispositivi: su internet non c'è nessuna pagina di login da provare a
+      # forzare. Con un dominio pubblico ci arriva il reverse proxy, sempre
+      # da localhost.
+      #
+      # Con il binding predefinito (0.0.0.0) la dashboard sarebbe raggiungibile
+      # in chiaro da chiunque conosca l'IP della VPS, password compresa.
+      - "127.0.0.1:${APP_PORT:-8000}:8000"
+    # --proxy-headers: dietro il reverse proxy, senza questo uvicorn vede
+    # ogni richiesta come http e come proveniente dal proxy.
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips=*

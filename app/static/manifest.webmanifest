@@ -1,0 +1,20 @@
+{
+  "name": "Dashboard Spese",
+  "short_name": "Spese",
+  "description": "Dashboard self-hosted per le spese personali",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#080c10",
+  "theme_color": "#080c10",
+  "lang": "it",
+  "icons": [
+    {
+      "src": "/static/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

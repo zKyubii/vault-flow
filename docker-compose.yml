@@ -1,0 +1,49 @@
+# Configurazione di base, valida sia in sviluppo sia in produzione.
+#
+# Gli extra di sviluppo (codice montato dall'host, ricarica automatica) NON
+# stanno qui: sono in docker-compose.override.yml, che Docker Compose carica
+# da solo in locale. In produzione si passano i file esplicitamente e
+# l'override resta fuori:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Perché così e non con un `volumes: []` nel file di produzione: Compose
+# **unisce** le liste invece di sostituirle, quindi svuotare i volumi da un
+# file di sovrascrittura non funziona — il codice dell'host resterebbe
+# montato sopra l'immagine anche in produzione.
+
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: ${TZ:-Europe/Rome}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    # Nessuna porta esposta: il database è raggiungibile SOLO dal container
+    # app, sulla rete interna di Docker. Per guardarci dentro con
+    # DBeaver/Workbench, scommenta in docker-compose.override.yml.
+
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-8000}:8000"
+
+volumes:
+  db_data:
