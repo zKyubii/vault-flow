@@ -7,6 +7,10 @@
 
 services:
   app:
+    # In sviluppo su tutte le interfacce: comodo per aprire la dashboard dal
+    # telefono sulla rete di casa mentre si lavora.
+    ports:
+      - "${APP_PORT:-8000}:8000"
     volumes:
       # il codice arriva dall'host: modifichi un .py e uvicorn ricarica,
       # senza ricostruire l'immagine

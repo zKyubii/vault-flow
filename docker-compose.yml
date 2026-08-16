@@ -42,8 +42,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    ports:
-      - "${APP_PORT:-8000}:8000"
+    # NESSUN `ports` qui: la pubblicazione della porta è diversa fra sviluppo
+    # e produzione e sta nei rispettivi file di sovrascrittura.
+    #
+    # Compose **unisce** le liste invece di sostituirle: mettendo una
+    # mappatura qui, quella di produzione (`127.0.0.1:...`) si sarebbe
+    # sommata invece di rimpiazzarla, e l'app sarebbe rimasta pubblicata
+    # anche su 0.0.0.0 — cioè esposta a internet, esattamente ciò che il file
+    # di produzione deve impedire. Le due mappature litigano anche sulla
+    # stessa porta e il container non parte.
 
 volumes:
   db_data:
