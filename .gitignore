@@ -33,9 +33,16 @@ venv/
 
 # === Docker / DB ===
 db_data/
+backups/
+
+# I dump del database contengono tutti i movimenti: mai nel repo.
 *.sql
 *.sql.gz
-backups/
+# ...ma le MIGRAZIONI sono codice, non dati: sono lo schema del database e
+# senza di esse il build Docker fallisce (`COPY db ./db` non trova nulla) e
+# chi clona il repo non ha modo di creare le tabelle.
+!db/migrations/
+!db/migrations/*.sql
 
 # === APPUNTI DI LAVORO — NON PUBBLICARE ===
 # CLAUDE.md contiene dati finanziari reali: saldi dei conti, tabelle di
