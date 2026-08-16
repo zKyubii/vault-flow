@@ -49,13 +49,13 @@ def apply_transfers(
     """
     category = db.get(Category, category_id)
     if not category:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Categoria inesistente")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Category not found")
     if not category.exclude_from_stats:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            f"'{category.name}' non è esclusa dalle statistiche: marcare dei "
-            "giroconti con una categoria che conta come spesa li farebbe "
-            "contare due volte, che è il problema che stiamo risolvendo.",
+            f"'{category.name}' is not excluded from statistics: marking transfers "
+            "with a category that counts as spending would double-count them, "
+            "which is the problem being solved here.",
         )
 
     return detect_service.apply_transfers(

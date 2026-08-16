@@ -34,7 +34,7 @@ export async function render(root) {
     {},
     profiles.length
       ? profiles.map((p) => el("option", { value: p.id, text: p.name }))
-      : [el("option", { value: "", text: "— nessun profilo salvato —" })]
+      : [el("option", { value: "", text: "— no saved profile —" })]
   );
 
   // se il profilo ha un conto associato, si allinea la selezione
@@ -44,8 +44,8 @@ export async function render(root) {
   };
   profileSelect.addEventListener("change", syncAccount);
 
-  const previewBtn = el("button", { text: "Anteprima", disabled: true });
-  const commitBtn = el("button", { class: "primary", text: "Importa", disabled: true });
+  const previewBtn = el("button", { text: "Preview", disabled: true });
+  const commitBtn = el("button", { class: "primary", text: "Import", disabled: true });
 
   fileInput.addEventListener("change", async () => {
     file = fileInput.files[0] || null;
@@ -54,7 +54,7 @@ export async function render(root) {
     previewBtn.disabled = !file;
     if (!file) return clear(inspectBox);
 
-    clear(inspectBox).append(spinner("Leggo il file…"));
+    clear(inspectBox).append(spinner("Reading the file…"));
     try {
       const info = await api.inspect(file);
       const lines = el("pre", { class: "filelines" });
@@ -68,14 +68,14 @@ export async function render(root) {
       }
       clear(inspectBox).append(
         el("div", { class: "card" }, [
-          el("h2", { text: "Com'è fatto il file" }),
+          el("h2", { text: "What the file looks like" }),
           el("div", { class: "muted", style: "margin-bottom:8px" }, [
-            `${info.total_lines} righe · encoding ${info.encoding_used} · delimitatore "${info.delimiter_guess}"`,
+            `${info.total_lines} lines · encoding ${info.encoding_used} · delimiter "${info.delimiter_guess}"`,
           ]),
           el("div", { class: "muted", style: "margin-bottom:8px" }, [
             info.header_line_guess
-              ? `Intestazione ipotizzata alla riga ${info.header_line_guess} (in blu). È solo un suggerimento: se è sbagliata, conta le righe da saltare a mano.`
-              : "Intestazione non individuata.",
+              ? `Header guessed at line ${info.header_line_guess} (in blue). It is only a guess: if it is wrong, count the rows to skip yourself.`
+              : "Header not detected.",
           ]),
           lines,
         ])
@@ -86,23 +86,23 @@ export async function render(root) {
   });
 
   previewBtn.addEventListener("click", async () => {
-    if (!file || !profileSelect.value) return toast("Serve un file e un profilo", true);
-    clear(previewBox).append(spinner("Interpreto il file…"));
+    if (!file || !profileSelect.value) return toast("A file and a profile are required", true);
+    clear(previewBox).append(spinner("Parsing the file…"));
     commitBtn.disabled = true;
     try {
       const result = await api.preview(file, profileSelect.value, accountSelect.value);
       const table = el("table", { class: "preview" }, [
         el("tr", {}, [
-          el("th", { text: "Riga" }),
-          el("th", { text: "Data" }),
-          el("th", { text: "Descrizione" }),
-          el("th", { text: "Importo" }),
+          el("th", { text: "Line" }),
+          el("th", { text: "Date" }),
+          el("th", { text: "Description" }),
+          el("th", { text: "Amount" }),
         ]),
         ...result.rows.map((r) =>
           el("tr", { class: r.is_duplicate ? "dup" : "" }, [
             el("td", { text: r.line_no }),
             el("td", { text: formatDate(r.booked_at) }),
-            el("td", { text: r.description + (r.is_duplicate ? "  (già presente)" : "") }),
+            el("td", { text: r.description + (r.is_duplicate ? "  (already imported)" : "") }),
             el("td", {
               class: `amount ${Number(r.amount) < 0 ? "neg" : "pos"}`,
               text: money(r.amount),
@@ -113,30 +113,30 @@ export async function render(root) {
 
       clear(previewBox).append(
         el("div", { class: "card" }, [
-          el("h2", { text: "Anteprima — non è stato scritto nulla" }),
+          el("h2", { text: "Preview — nothing has been written" }),
           el("div", { class: "row" }, [
-            el("span", { text: `${result.rows_new} nuove` }),
-            el("span", { class: "muted", text: `${result.rows_duplicate} già presenti` }),
+            el("span", { text: `${result.rows_new} new` }),
+            el("span", { class: "muted", text: `${result.rows_duplicate} already imported` }),
           ]),
           el("div", { class: "row", style: "margin-top:4px" }, [
-            el("span", { class: "muted", text: `${result.rows_failed} righe illeggibili` }),
-            el("span", { class: "muted", text: `totale ${money(result.total_amount)}` }),
+            el("span", { class: "muted", text: `${result.rows_failed} unreadable rows` }),
+            el("span", { class: "muted", text: `total ${money(result.total_amount)}` }),
           ]),
           result.date_from
             ? el("div", { class: "muted", style: "margin-top:4px" }, [
-                `periodo ${formatDate(result.date_from)} → ${formatDate(result.date_to)}`,
+                `period ${formatDate(result.date_from)} → ${formatDate(result.date_to)}`,
               ])
             : null,
           result.errors.length
             ? el("div", { class: "muted", style: "margin-top:8px;color:var(--neg)" }, [
-                `Prima riga illeggibile: ${result.errors[0].line_no} — ${result.errors[0].message}`,
+                `First unreadable row: ${result.errors[0].line_no} — ${result.errors[0].message}`,
               ])
             : null,
           el("div", { class: "scroll-x", style: "margin-top:10px" }, [table]),
         ])
       );
       commitBtn.disabled = result.rows_new === 0;
-      if (result.rows_new === 0) toast("Niente di nuovo da importare");
+      if (result.rows_new === 0) toast("Nothing new to import");
     } catch (error) {
       clear(previewBox).append(empty(error.message));
     }
@@ -146,7 +146,7 @@ export async function render(root) {
     commitBtn.disabled = true;
     try {
       const run = await api.commit(file, profileSelect.value, accountSelect.value);
-      toast(`Importate ${run.rows_imported}, saltate ${run.rows_skipped}`);
+      toast(`Imported ${run.rows_imported}, skipped ${run.rows_skipped}`);
       render(clear(root));
     } catch (error) {
       toast(error.message, true);
@@ -155,7 +155,7 @@ export async function render(root) {
   });
 
   const runsCard = el("div", { class: "card" }, [
-    el("h2", { text: "Import precedenti" }),
+    el("h2", { text: "Previous imports" }),
     ...(runs.length
       ? runs.slice(0, 10).map((run) =>
           el("div", { class: "row", style: "padding:7px 0" }, [
@@ -163,15 +163,15 @@ export async function render(root) {
               el("span", { class: "truncate", text: run.filename }),
               el("span", {
                 class: "muted",
-                text: `${run.rows_imported} importate · ${run.rows_skipped} saltate · ${run.status}`,
+                text: `${run.rows_imported} imported · ${run.rows_skipped} skipped · ${run.status}`,
               }),
             ]),
             run.status === "completed" && run.rows_imported > 0
               ? el("button", {
                   class: "small danger",
-                  text: "Annulla",
+                  text: "Undo",
                   onclick: async () => {
-                    if (!confirm(`Annullare l'import di ${run.filename}? Verranno rimosse ${run.rows_imported} transazioni.`))
+                    if (!confirm(`Undo the import of ${run.filename}? ${run.rows_imported} transactions will be removed.`))
                       return;
                     try {
                       const result = await api.revertRun(run.id);
@@ -185,16 +185,16 @@ export async function render(root) {
               : null,
           ])
         )
-      : [empty("Nessun import ancora")]),
+      : [empty("No imports yet")]),
   ]);
 
   root.replaceChildren(
     el("div", { class: "card" }, [
-      el("h2", { text: "1 · Scegli il file CSV" }),
+      el("h2", { text: "1 · Choose the CSV file" }),
       fileInput,
       el("div", { class: "field-row", style: "margin-top:8px" }, [
-        el("div", {}, [el("label", { text: "Profilo" }), profileSelect]),
-        el("div", {}, [el("label", { text: "Conto" }), accountSelect]),
+        el("div", {}, [el("label", { text: "Profile" }), profileSelect]),
+        el("div", {}, [el("label", { text: "Account" }), accountSelect]),
       ]),
       el("div", { class: "row", style: "margin-top:14px;gap:8px" }, [previewBtn, commitBtn]),
     ]),

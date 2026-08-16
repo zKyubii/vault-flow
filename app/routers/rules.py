@@ -30,9 +30,9 @@ router = APIRouter(tags=["categorizzazione"])
 
 def _check_refs(db: Session, category_id: int | None, account_id: int | None) -> None:
     if category_id is not None and not db.get(Category, category_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Categoria inesistente")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Category not found")
     if account_id is not None and not db.get(Account, account_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Conto inesistente")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Account not found")
 
 
 @router.get("/rules", response_model=list[CategoryRuleOut])
@@ -61,7 +61,7 @@ def create_rule(payload: CategoryRuleCreate, db: Session = Depends(get_db)):
 def update_rule(rule_id: int, payload: CategoryRuleUpdate, db: Session = Depends(get_db)):
     rule = db.get(CategoryRule, rule_id)
     if not rule:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Regola inesistente")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Rule not found")
 
     changes = payload.model_dump(exclude_unset=True)
     _check_refs(db, changes.get("category_id"), changes.get("account_id"))
@@ -84,10 +84,10 @@ def update_rule(rule_id: int, payload: CategoryRuleUpdate, db: Session = Depends
 def delete_rule(rule_id: int, db: Session = Depends(get_db)):
     rule = db.get(CategoryRule, rule_id)
     if not rule:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Regola inesistente")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Rule not found")
     db.delete(rule)
     db.commit()
-    return Message(detail="Regola eliminata")
+    return Message(detail="Rule deleted")
 
 
 @router.post("/rules/apply", response_model=ApplyRulesResponse)
@@ -98,7 +98,7 @@ def apply(payload: ApplyRulesRequest, db: Session = Depends(get_db)):
     nemmeno con `only_uncategorized=False`.
     """
     if payload.account_id is not None and not db.get(Account, payload.account_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Conto inesistente")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Account not found")
 
     result = apply_rules(
         db,
@@ -127,7 +127,7 @@ def similar(transaction_id: int, db: Session = Depends(get_db)):
     """
     transaction = db.get(Transaction, transaction_id)
     if not transaction:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Transazione inesistente")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Transaction not found")
 
     pattern = suggest_pattern(transaction.description)
     result = count_matching(db, pattern=pattern)
@@ -145,9 +145,9 @@ def rule_from_transaction(payload: RuleFromTransaction, db: Session = Depends(ge
     """
     transaction = db.get(Transaction, payload.transaction_id)
     if not transaction:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Transazione inesistente")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Transaction not found")
     if not db.get(Category, payload.category_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Categoria inesistente")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Category not found")
 
     pattern = (payload.pattern or suggest_pattern(transaction.description)).strip()
     try:

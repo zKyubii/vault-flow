@@ -1,4 +1,4 @@
-# Dashboard Spese
+# Vault Flow
 
 Self-hosted personal expense dashboard. Import your bank's CSV exports, get
 your spending categorised automatically, and read it from your phone as an

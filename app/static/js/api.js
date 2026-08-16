@@ -16,18 +16,18 @@ async function request(path, options = {}) {
   } catch {
     // fetch fallisce solo se la rete non c'è: il service worker serve già
     // le GET dalla cache, quindi qui ci si arriva soprattutto in scrittura.
-    throw new ApiError("Sei offline: questa operazione richiede connessione", 0);
+    throw new ApiError("You are offline: this action needs a connection", 0);
   }
 
   if (response.status === 401 && !path.startsWith("/auth/")) {
     // sessione scaduta o cookie assente: lo segnala una volta sola a chi sa
     // cosa farne, invece di far fallire ogni vista con un errore criptico
     window.dispatchEvent(new CustomEvent("spese:unauthorized"));
-    throw new ApiError("Sessione scaduta: rifai l'accesso", 401);
+    throw new ApiError("Session expired: please sign in again", 401);
   }
 
   if (!response.ok) {
-    let detail = `Errore ${response.status}`;
+    let detail = `Error ${response.status}`;
     try {
       const body = await response.json();
       if (body.detail) {

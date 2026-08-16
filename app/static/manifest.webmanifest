@@ -1,14 +1,14 @@
 {
-  "name": "Dashboard Spese",
-  "short_name": "Spese",
-  "description": "Dashboard self-hosted per le spese personali",
+  "name": "Vault Flow",
+  "short_name": "Vault Flow",
+  "description": "Self-hosted personal expense dashboard",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#080c10",
   "theme_color": "#080c10",
-  "lang": "it",
+  "lang": "en",
   "icons": [
     {
       "src": "/static/icons/icon.svg",

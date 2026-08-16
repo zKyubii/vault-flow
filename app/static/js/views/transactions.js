@@ -29,20 +29,20 @@ async function offerRule(transaction, categoryId, container, onDone) {
   container.replaceChildren(
     el("div", { class: "rule-offer" }, [
       el("div", { class: "muted", style: "margin-bottom:8px" }, [
-        `Ci sono altri ${info.others} movimenti che contengono «${info.pattern}».`,
+        `${info.others} other transactions contain "${info.pattern}".`,
       ]),
       el("div", { class: "row", style: "gap:8px" }, [
         el("button", {
           class: "primary small",
           style: "flex:1",
-          text: `Metti tutti in ${category ? category.name : "questa categoria"}`,
+          text: `Move them all to ${category ? category.name : "this category"}`,
           onclick: async () => {
             try {
               const result = await api.ruleFromTransaction({
                 transaction_id: transaction.id,
                 category_id: categoryId,
               });
-              toast(`Regola creata · ${result.updated} movimenti categorizzati`);
+              toast(`Rule created · ${result.updated} transactions categorised`);
               onDone();
             } catch (error) {
               toast(error.message, true);
@@ -61,7 +61,7 @@ async function offerRule(transaction, categoryId, container, onDone) {
 
 function categorySelect(transaction, offerBox, onDone) {
   const select = el("select", { class: "inline-select" });
-  select.append(el("option", { value: "", text: "— nessuna —" }));
+  select.append(el("option", { value: "", text: "— none —" }));
   for (const category of getCategories()) {
     select.append(
       el("option", {
@@ -78,7 +78,7 @@ function categorySelect(transaction, offerBox, onDone) {
       await api.setCategory(transaction.id, value);
       transaction.category_id = value;
       transaction.category_source = value ? "manual" : null;
-      toast("Salvata — le regole non la sovrascriveranno più");
+      toast("Saved — rules will no longer overwrite it");
       if (value) await offerRule(transaction, value, offerBox, onDone);
       else offerBox.replaceChildren();
     } catch (error) {
@@ -100,7 +100,7 @@ function transactionRow(transaction, onChange) {
     el("div", { class: "tx-main" }, [
       el("div", { class: "tx-desc truncate", text: transaction.description }),
       el("div", { class: "muted truncate" }, [
-        [account ? account.name : "?", category ? category.name : "senza categoria"].join(" · "),
+        [account ? account.name : "?", category ? category.name : "uncategorised"].join(" · "),
         transaction.category_source === "manual" ? " ✎" : "",
       ]),
     ]),
@@ -126,12 +126,12 @@ function transactionRow(transaction, onChange) {
         categorySelect(transaction, offerBox, onChange),
         el("button", {
           class: "small danger",
-          text: "Elimina",
+          text: "Delete",
           onclick: async () => {
-            if (!confirm(`Eliminare "${transaction.description}"?`)) return;
+            if (!confirm(`Delete "${transaction.description}"?`)) return;
             try {
               await api.deleteTransaction(transaction.id);
-              toast("Eliminata");
+              toast("Deleted");
               onChange();
             } catch (error) {
               toast(error.message, true);
@@ -158,7 +158,7 @@ export async function render(root) {
 
   const searchInput = el("input", {
     type: "search",
-    placeholder: "Cerca descrizione o controparte…",
+    placeholder: "Search description or counterparty…",
     value: search,
   });
   let searchTimer;
@@ -182,7 +182,7 @@ export async function render(root) {
       clear(listBox);
 
       if (!page.items.length) {
-        listBox.append(empty("Nessun movimento con questi filtri"));
+        listBox.append(empty("No transactions match these filters"));
         return;
       }
 
@@ -195,11 +195,11 @@ export async function render(root) {
         el("div", { class: "row muted", style: "margin:4px 2px 8px" }, [
           el("span", {
             text: truncated
-              ? `${page.items.length} di ${page.total} movimenti`
-              : `${page.total} movimenti`,
+              ? `${page.items.length} of ${page.total} transactions`
+              : `${page.total} transactions`,
           }),
           el("span", { class: "row", style: "gap:5px" }, [
-            truncated ? el("span", { class: "muted", text: "somma mostrate" }) : null,
+            truncated ? el("span", { class: "muted", text: "shown total" }) : null,
             el("span", { class: `amount ${signClass(shown)}`, text: money(shown) }),
           ]),
         ])

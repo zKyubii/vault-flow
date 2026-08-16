@@ -11,11 +11,11 @@ import * as importer from "./views/importer.js";
 import * as rules from "./views/rules.js";
 
 const ROUTES = {
-  "/": { title: "Riepilogo", view: summary },
-  "/transactions": { title: "Movimenti", view: transactions },
-  "/add": { title: "Aggiungi", view: add },
-  "/import": { title: "Importa", view: importer },
-  "/rules": { title: "Regole", view: rules },
+  "/": { title: "Summary", view: summary },
+  "/transactions": { title: "Transactions", view: transactions },
+  "/add": { title: "Add", view: add },
+  "/import": { title: "Import", view: importer },
+  "/rules": { title: "Rules", view: rules },
 };
 
 const viewRoot = document.getElementById("view");
@@ -43,7 +43,7 @@ async function router() {
     clear(viewRoot).append(
       Object.assign(document.createElement("div"), {
         className: "empty",
-        textContent: error.message || "Errore imprevisto",
+        textContent: error.message || "Unexpected error",
       })
     );
   }
@@ -61,11 +61,11 @@ function mountLogout(displayName) {
   const actions = document.getElementById("page-actions");
   const button = document.createElement("button");
   button.className = "small";
-  button.title = displayName ? `Sei ${displayName} — esci` : "Esci";
-  button.setAttribute("aria-label", "Esci");
-  button.textContent = "Esci";
+  button.title = displayName ? `Signed in as ${displayName} — sign out` : "Sign out";
+  button.setAttribute("aria-label", "Sign out");
+  button.textContent = "Sign out";
   button.addEventListener("click", async () => {
-    if (!confirm("Uscire dalla dashboard?")) return;
+    if (!confirm("Sign out of the dashboard?")) return;
     try {
       await api.logout();
     } finally {

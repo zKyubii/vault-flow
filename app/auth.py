@@ -184,6 +184,6 @@ def require_auth(
     if not verify_token(get_secret(db), session):
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED,
-            "Autenticazione richiesta",
+            "Authentication required",
             headers={"WWW-Authenticate": "Cookie"},
         )

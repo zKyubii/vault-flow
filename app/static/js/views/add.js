@@ -23,11 +23,11 @@ export async function render(root) {
     type: "number",
     step: "0.01",
     inputmode: "decimal",
-    placeholder: "0,00",
+    placeholder: "0.00",
     style: "font-size:1.6rem;text-align:center;min-height:64px",
   });
 
-  const descInput = el("input", { type: "text", placeholder: "Es. caffè al bar" });
+  const descInput = el("input", { type: "text", placeholder: "e.g. coffee at the bar" });
   const dateInput = el("input", { type: "date", value: todayISO() });
 
   const accountSelect = el(
@@ -44,7 +44,7 @@ export async function render(root) {
   );
 
   const categorySelect = el("select", {}, [
-    el("option", { value: "", text: "— nessuna —" }),
+    el("option", { value: "", text: "— none —" }),
     ...categories.map((c) => {
       const parent = c.parent_id ? categories.find((p) => p.id === c.parent_id) : null;
       return el("option", {
@@ -56,8 +56,8 @@ export async function render(root) {
 
   // Uscita di default: quasi tutto quello che si scrive a mano è una spesa.
   let isExpense = true;
-  const expenseBtn = el("button", { class: "chip active", text: "Uscita" });
-  const incomeBtn = el("button", { class: "chip", text: "Entrata" });
+  const expenseBtn = el("button", { class: "chip active", text: "Expense" });
+  const incomeBtn = el("button", { class: "chip", text: "Income" });
   const setDirection = (expense) => {
     isExpense = expense;
     expenseBtn.className = `chip${expense ? " active" : ""}`;
@@ -83,14 +83,14 @@ export async function render(root) {
 
   const submit = el("button", {
     class: "primary",
-    text: "Salva",
+    text: "Save",
     style: "width:100%;margin-top:16px",
   });
 
   submit.addEventListener("click", async () => {
     const raw = Number(String(amountInput.value).replace(",", "."));
-    if (!raw || Number.isNaN(raw)) return toast("Inserisci un importo", true);
-    if (!descInput.value.trim()) return toast("Inserisci una descrizione", true);
+    if (!raw || Number.isNaN(raw)) return toast("Enter an amount", true);
+    if (!descInput.value.trim()) return toast("Enter a description", true);
 
     submit.disabled = true;
     try {
@@ -101,7 +101,7 @@ export async function render(root) {
         description: descInput.value.trim(),
         category_id: categorySelect.value ? Number(categorySelect.value) : null,
       });
-      toast("Salvata");
+      toast("Saved");
       amountInput.value = "";
       descInput.value = "";
       amountInput.focus();
@@ -120,18 +120,18 @@ export async function render(root) {
         expenseBtn,
         incomeBtn,
       ]),
-      el("label", { text: "Descrizione" }),
+      el("label", { text: "Description" }),
       descInput,
       el("div", { class: "field-row" }, [
-        el("div", {}, [el("label", { text: "Data" }), dateInput]),
-        el("div", {}, [el("label", { text: "Conto" }), accountSelect]),
+        el("div", {}, [el("label", { text: "Date" }), dateInput]),
+        el("div", {}, [el("label", { text: "Account" }), accountSelect]),
       ]),
-      el("label", { text: "Categoria (facoltativa)" }),
+      el("label", { text: "Category (optional)" }),
       categorySelect,
       submit,
     ]),
     el("div", { class: "muted", style: "text-align:center" }, [
-      "L'inserimento manuale serve per il contante. Tutto ciò che paghi con carta arriva dall'import CSV.",
+      "Manual entry is for cash. Anything paid by card comes in through CSV import.",
     ])
   );
 

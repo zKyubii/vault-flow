@@ -64,7 +64,7 @@ def create_account(payload: AccountCreate, db: Session = Depends(get_db)):
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status.HTTP_409_CONFLICT, f"Esiste già un conto '{payload.name}'")
+        raise HTTPException(status.HTTP_409_CONFLICT, f"An account named '{payload.name}' already exists")
     db.refresh(account)
     return AccountWithBalance(
         id=account.id,
@@ -82,7 +82,7 @@ def create_account(payload: AccountCreate, db: Session = Depends(get_db)):
 def update_account(account_id: int, payload: AccountUpdate, db: Session = Depends(get_db)):
     account = db.get(Account, account_id)
     if not account:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Conto inesistente")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Account not found")
 
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(account, field, value)
@@ -90,7 +90,7 @@ def update_account(account_id: int, payload: AccountUpdate, db: Session = Depend
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status.HTTP_409_CONFLICT, "Nome conto già in uso")
+        raise HTTPException(status.HTTP_409_CONFLICT, "Account name already in use")
     db.refresh(account)
 
     balance, count = db.execute(
@@ -122,7 +122,7 @@ def delete_account(account_id: int, db: Session = Depends(get_db)):
     """
     account = db.get(Account, account_id)
     if not account:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Conto inesistente")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Account not found")
 
     count = db.scalar(
         select(func.count(Transaction.id)).where(Transaction.account_id == account_id)
@@ -131,7 +131,7 @@ def delete_account(account_id: int, db: Session = Depends(get_db)):
     db.delete(account)
     db.commit()
     return Message(
-        detail=f"Conto '{name}' eliminato con {count} movimenti",
+        detail=f"Account '{name}' deleted along with {count} transactions",
         data={"deleted_transactions": count},
     )
 
@@ -144,7 +144,7 @@ def list_categories(db: Session = Depends(get_db)):
 @router.post("/categories", response_model=CategoryOut, status_code=status.HTTP_201_CREATED)
 def create_category(payload: CategoryCreate, db: Session = Depends(get_db)):
     if payload.parent_id is not None and not db.get(Category, payload.parent_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Categoria padre inesistente")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Parent category not found")
 
     existing = db.scalar(
         select(Category.id).where(
@@ -155,7 +155,7 @@ def create_category(payload: CategoryCreate, db: Session = Depends(get_db)):
         )
     )
     if existing:
-        raise HTTPException(status.HTTP_409_CONFLICT, f"Esiste già la categoria '{payload.name}'")
+        raise HTTPException(status.HTTP_409_CONFLICT, f"A category named '{payload.name}' already exists")
 
     category = Category(**{**payload.model_dump(), "name": payload.name.strip()})
     db.add(category)
@@ -168,12 +168,12 @@ def create_category(payload: CategoryCreate, db: Session = Depends(get_db)):
 def update_category(category_id: int, payload: CategoryUpdate, db: Session = Depends(get_db)):
     category = db.get(Category, category_id)
     if not category:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Categoria inesistente")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Category not found")
 
     changes = payload.model_dump(exclude_unset=True)
     if changes.get("parent_id") == category_id:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "Una categoria non può essere padre di sé stessa"
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "A category cannot be its own parent"
         )
     for field, value in changes.items():
         setattr(category, field, value)
@@ -188,7 +188,7 @@ def delete_category(category_id: int, db: Session = Depends(get_db)):
     semplicemente senza categoria."""
     category = db.get(Category, category_id)
     if not category:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Categoria inesistente")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Category not found")
 
     used = db.scalar(
         select(func.count(Transaction.id)).where(Transaction.category_id == category_id)
@@ -196,5 +196,5 @@ def delete_category(category_id: int, db: Session = Depends(get_db)):
     db.delete(category)
     db.commit()
     return Message(
-        detail=f"Categoria eliminata. {used} transazioni sono tornate senza categoria."
+        detail=f"Category deleted. {used} transactions are now uncategorised."
     )

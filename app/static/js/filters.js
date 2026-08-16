@@ -22,11 +22,11 @@ const DEFAULTS = {
 };
 
 export const PERIODS = [
-  { key: "month", label: "Questo mese" },
-  { key: "3m", label: "3 mesi" },
-  { key: "year", label: "Anno" },
-  { key: "all", label: "Sempre" },
-  { key: "custom", label: "Scegli tu" },
+  { key: "month", label: "This month" },
+  { key: "3m", label: "3 months" },
+  { key: "year", label: "Year" },
+  { key: "all", label: "All time" },
+  { key: "custom", label: "Custom" },
 ];
 
 // Copia profonda: gli array vanno duplicati, altrimenti lo stato condivide
@@ -137,25 +137,25 @@ export function toSearchParams(extra = {}, options = {}) {
 
 /** Riassunto testuale dei filtri attivi, per la barra chiusa. */
 export function describe() {
-  const parts = [PERIODS.find((p) => p.key === state.period)?.label || "Periodo"];
+  const parts = [PERIODS.find((p) => p.key === state.period)?.label || "Period"];
 
   if (state.period === "custom" && state.date_from) {
-    parts[0] = `${state.date_from} → ${state.date_to || "oggi"}`;
+    parts[0] = `${state.date_from} → ${state.date_to || "today"}`;
   }
   if (state.account_ids.length) {
     const names = state.account_ids
       .map((id) => (accounts || []).find((a) => a.id === id)?.name)
       .filter(Boolean);
-    parts.push(names.length <= 2 ? names.join(" + ") : `${names.length} conti`);
+    parts.push(names.length <= 2 ? names.join(" + ") : `${names.length} accounts`);
   }
   if (state.category_ids.length) {
     const names = state.category_ids
       .map((id) => (categories || []).find((c) => c.id === id)?.name)
       .filter(Boolean);
-    parts.push(names.length <= 2 ? names.join(" + ") : `${names.length} categorie`);
+    parts.push(names.length <= 2 ? names.join(" + ") : `${names.length} categories`);
   }
-  if (state.kind === "income") parts.push("solo entrate");
-  if (state.kind === "expense") parts.push("solo uscite");
+  if (state.kind === "income") parts.push("income only");
+  if (state.kind === "expense") parts.push("expenses only");
   return parts.join(" · ");
 }
 
@@ -206,7 +206,7 @@ export function filterBar(onChange) {
   function buildPanel() {
     const customRow = el("div", { class: "field-row", hidden: state.period !== "custom" }, [
       el("div", {}, [
-        el("label", { text: "Dal" }),
+        el("label", { text: "From" }),
         el("input", {
           type: "date",
           value: state.date_from || "",
@@ -217,7 +217,7 @@ export function filterBar(onChange) {
         }),
       ]),
       el("div", {}, [
-        el("label", { text: "Al" }),
+        el("label", { text: "To" }),
         el("input", {
           type: "date",
           value: state.date_to || todayISO(),
@@ -230,7 +230,7 @@ export function filterBar(onChange) {
     ]);
 
     panel.replaceChildren(
-      el("label", { text: "Periodo" }),
+      el("label", { text: "Period" }),
       el(
         "div",
         { class: "chips" },
@@ -253,11 +253,11 @@ export function filterBar(onChange) {
       ),
       customRow,
 
-      el("label", { text: "Conti" }),
+      el("label", { text: "Accounts" }),
       el("div", { class: "chips" }, [
         el("button", {
           class: `chip${state.account_ids.length === 0 ? " active" : ""}`,
-          text: "Tutti",
+          text: "All",
           onclick: () => {
             state.account_ids = [];
             apply();
@@ -275,14 +275,14 @@ export function filterBar(onChange) {
         ),
       ]),
 
-      el("label", { text: "Tipo" }),
+      el("label", { text: "Type" }),
       el(
         "div",
         { class: "chips" },
         [
-          ["all", "Tutto"],
-          ["expense", "Solo uscite"],
-          ["income", "Solo entrate"],
+          ["all", "All"],
+          ["expense", "Expenses only"],
+          ["income", "Income only"],
         ].map(([key, label]) =>
           el("button", {
             class: `chip${state.kind === key ? " active" : ""}`,
@@ -295,11 +295,11 @@ export function filterBar(onChange) {
         )
       ),
 
-      el("label", { text: "Categorie" }),
+      el("label", { text: "Categories" }),
       el("div", { class: "chips" }, [
         el("button", {
           class: `chip${state.category_ids.length === 0 ? " active" : ""}`,
-          text: "Tutte",
+          text: "All",
           onclick: () => {
             state.category_ids = [];
             apply();
@@ -322,7 +322,7 @@ export function filterBar(onChange) {
         ? el("button", {
             class: "small",
             style: "margin-top:12px;width:100%",
-            text: "Azzera i filtri",
+            text: "Clear filters",
             onclick: () => {
               Object.assign(state, freshDefaults());
               apply();

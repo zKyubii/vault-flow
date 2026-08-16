@@ -35,9 +35,9 @@ function totalsCard(data) {
   };
 
   return el("div", { class: "totals" }, [
-    box("Entrate", data.income, previous?.income, true),
-    box("Uscite", data.expense, previous?.expense),
-    box("Saldo", data.net, previous?.net, true),
+    box("Income", data.income, previous?.income, true),
+    box("Expenses", data.expense, previous?.expense),
+    box("Balance", data.net, previous?.net, true),
   ]);
 }
 
@@ -79,7 +79,7 @@ function donut(categories, onPick) {
 
   const showTotal = () => {
     labelTop.textContent = money(-total);
-    labelBottom.textContent = `${spese.length} categorie`;
+    labelBottom.textContent = `${spese.length} categories`;
   };
   const showCategory = (category) => {
     labelTop.textContent = money(category.total);
@@ -157,16 +157,16 @@ function donut(categories, onPick) {
 
 function categoriesCard(data, onPick) {
   const spese = data.by_category.filter((c) => Number(c.total) < 0);
-  if (!spese.length) return el("div", { class: "card" }, [empty("Nessuna spesa nel periodo")]);
+  if (!spese.length) return el("div", { class: "card" }, [empty("No spending in this period")]);
 
   const max = Math.max(...spese.map((c) => Math.abs(Number(c.total))));
   const previous = data.previous?.by_category || {};
 
   return el("div", { class: "card" }, [
-    el("h2", { text: "Spese per categoria" }),
+    el("h2", { text: "Spending by category" }),
     donut(spese, onPick),
     el("div", { class: "muted", style: "text-align:center;margin:-8px 0 12px;font-size:.72rem" }, [
-      "Tocca una fetta per vederla, di nuovo per filtrarla",
+      "Tap a slice to inspect it, tap again to filter by it",
     ]),
     ...spese.map((c) => {
       const value = Math.abs(Number(c.total));
@@ -212,15 +212,15 @@ function monthsCard(months) {
     tip.replaceChildren(
       el("div", { class: "tip-month", text: monthLabel(month.month) }),
       el("div", { class: "row", style: "gap:14px" }, [
-        el("span", { class: "muted", text: "Entrate" }),
+        el("span", { class: "muted", text: "Income" }),
         el("span", { class: "amount pos", text: money(month.income) }),
       ]),
       el("div", { class: "row", style: "gap:14px" }, [
-        el("span", { class: "muted", text: "Uscite" }),
+        el("span", { class: "muted", text: "Expenses" }),
         el("span", { class: "amount neg", text: money(month.expense) }),
       ]),
       el("div", { class: "row tip-net", style: "gap:14px" }, [
-        el("span", { class: "muted", text: "Saldo" }),
+        el("span", { class: "muted", text: "Balance" }),
         el("span", { class: `amount ${signClass(month.net)}`, text: money(month.net) }),
       ])
     );
@@ -270,7 +270,7 @@ function monthsCard(months) {
   }
 
   return el("div", { class: "card" }, [
-    el("h2", { text: "Andamento mensile" }),
+    el("h2", { text: "Monthly trend" }),
     el("div", { class: "chart-wrap" }, [tip, chart]),
   ]);
 }
@@ -278,14 +278,14 @@ function monthsCard(months) {
 function topCard(top) {
   if (!top.length) return null;
   return el("div", { class: "card" }, [
-    el("h2", { text: "Spese più grandi" }),
+    el("h2", { text: "Largest expenses" }),
     ...top.map((t) =>
       el("div", { class: "row", style: "padding:7px 0" }, [
         el("div", { class: "stack" }, [
           el("span", { class: "truncate", text: t.description }),
           el("span", {
             class: "muted",
-            text: `${formatDate(t.booked_at)} · ${t.category || "senza categoria"}`,
+            text: `${formatDate(t.booked_at)} · ${t.category || "uncategorised"}`,
           }),
         ]),
         el("span", { class: "amount neg", text: money(t.amount) }),
@@ -295,10 +295,10 @@ function topCard(top) {
 }
 
 const CADENCE_LABEL = {
-  weekly: "a settimana",
-  monthly: "al mese",
-  quarterly: "ogni 3 mesi",
-  yearly: "all'anno",
+  weekly: "weekly",
+  monthly: "monthly",
+  quarterly: "quarterly",
+  yearly: "yearly",
 };
 
 function subscriptionsCard(data) {
@@ -306,13 +306,13 @@ function subscriptionsCard(data) {
   if (!active.length) return null;
 
   return el("div", { class: "card" }, [
-    el("h2", { text: "Abbonamenti rilevati" }),
+    el("h2", { text: "Detected subscriptions" }),
     el("div", { class: "row", style: "margin-bottom:10px" }, [
       el("div", { class: "stack" }, [
-        el("span", { class: "amount neg", style: "font-size:1.2rem", text: `${money(data.monthly_total)}/mese` }),
-        el("span", { class: "muted", text: `${money(data.yearly_total)} all'anno` }),
+        el("span", { class: "amount neg", style: "font-size:1.2rem", text: `${money(data.monthly_total)}/month` }),
+        el("span", { class: "muted", text: `${money(data.yearly_total)} per year` }),
       ]),
-      el("span", { class: "muted", text: `${data.active_count} attivi` }),
+      el("span", { class: "muted", text: `${data.active_count} active` }),
     ]),
     ...active.map((s) =>
       el("div", { class: "row", style: "padding:7px 0;border-top:1px solid var(--border)" }, [
@@ -320,7 +320,7 @@ function subscriptionsCard(data) {
           el("span", { class: "truncate", text: s.description }),
           el("span", {
             class: "muted",
-            text: `${CADENCE_LABEL[s.cadence] || s.cadence} · prossimo ${formatDate(s.next_expected)}`,
+            text: `${CADENCE_LABEL[s.cadence] || s.cadence} · next ${formatDate(s.next_expected)}`,
           }),
         ]),
         el("span", { class: "amount neg", text: money(-s.amount) }),
@@ -328,7 +328,7 @@ function subscriptionsCard(data) {
     ),
     data.subscriptions.some((s) => !s.active)
       ? el("div", { class: "muted", style: "margin-top:10px;font-size:.76rem" }, [
-          `Non più addebitati: ${data.subscriptions.filter((s) => !s.active).map((s) => s.pattern).join(", ")}`,
+          `No longer charged: ${data.subscriptions.filter((s) => !s.active).map((s) => s.pattern).join(", ")}`,
         ])
       : null,
   ]);
@@ -336,33 +336,33 @@ function subscriptionsCard(data) {
 
 function balancesCard(balances, onChange) {
   const form = el("div", { hidden: true });
-  const nameInput = el("input", { type: "text", placeholder: "Es. Conto principale" });
+  const nameInput = el("input", { type: "text", placeholder: "e.g. Main account" });
   const typeSelect = el("select", {}, [
-    el("option", { value: "checking", text: "Conto corrente" }),
-    el("option", { value: "card", text: "Carta" }),
-    el("option", { value: "savings", text: "Risparmio" }),
-    el("option", { value: "cash", text: "Contanti" }),
+    el("option", { value: "checking", text: "Checking" }),
+    el("option", { value: "card", text: "Card" }),
+    el("option", { value: "savings", text: "Savings" }),
+    el("option", { value: "cash", text: "Cash" }),
   ]);
 
   form.append(
     el("div", { style: "border-top:1px solid var(--border);margin-top:8px;padding-top:8px" }, [
-      el("label", { text: "Nome del conto" }),
+      el("label", { text: "Account name" }),
       nameInput,
-      el("label", { text: "Tipo" }),
+      el("label", { text: "Type" }),
       typeSelect,
       el("button", {
         class: "primary small",
         style: "width:100%;margin-top:10px",
-        text: "Crea conto",
+        text: "Create account",
         onclick: async () => {
-          if (!nameInput.value.trim()) return toast("Serve un nome", true);
+          if (!nameInput.value.trim()) return toast("A name is required", true);
           try {
             await api.createAccount({
               name: nameInput.value.trim(),
               type: typeSelect.value,
               currency: "EUR",
             });
-            toast("Conto creato");
+            toast("Account created");
             invalidate();
             onChange();
           } catch (error) {
@@ -374,12 +374,12 @@ function balancesCard(balances, onChange) {
   );
 
   return el("div", { class: "card" }, [
-    el("h2", { text: "Conti" }),
+    el("h2", { text: "Accounts" }),
     ...balances.map((a) =>
       el("div", { class: "row", style: "padding:7px 0" }, [
         el("div", { class: "stack" }, [
           el("span", { text: a.name }),
-          el("span", { class: "muted", text: `${a.transactions} movimenti` }),
+          el("span", { class: "muted", text: `${a.transactions} transactions` }),
         ]),
         el("div", { class: "row", style: "gap:8px" }, [
           el("span", { class: `amount ${signClass(a.balance)}`, text: money(a.balance) }),
@@ -387,13 +387,13 @@ function balancesCard(balances, onChange) {
             class: "small danger",
             style: "min-height:28px;padding:2px 9px",
             text: "×",
-            title: "Elimina il conto",
+            title: "Delete account",
             onclick: async (event) => {
               event.stopPropagation();
               // il numero di movimenti va detto PRIMA: è irreversibile
               const message = a.transactions
-                ? `Eliminare "${a.name}"?\n\nVerranno cancellati anche i suoi ${a.transactions} movimenti. Non si torna indietro.`
-                : `Eliminare "${a.name}"?`;
+                ? `Delete "${a.name}"?\n\nIts ${a.transactions} transactions will be deleted too. This cannot be undone.`
+                : `Delete "${a.name}"?`;
               if (!confirm(message)) return;
               try {
                 const result = await api.deleteAccount(a.id);
@@ -411,7 +411,7 @@ function balancesCard(balances, onChange) {
     el("button", {
       class: "small",
       style: "width:100%;margin-top:10px",
-      text: "+ Aggiungi conto",
+      text: "+ Add account",
       onclick: () => {
         form.hidden = !form.hidden;
         if (!form.hidden) nameInput.focus();
@@ -441,7 +441,7 @@ export async function render(root) {
     const rebuilt = filterBar(() => load());
     bar.replaceWith(rebuilt);
     bar = rebuilt;
-    toast("Filtro categoria aggiunto");
+    toast("Category filter added");
     load();
   };
 
@@ -464,7 +464,7 @@ export async function render(root) {
       if (summary.previous) {
         children.push(
           el("div", { class: "muted", style: "text-align:center;margin:-4px 0 12px;font-size:.76rem" }, [
-            `confronto con ${formatDate(summary.previous.date_from)} → ${formatDate(summary.previous.date_to)}`,
+            `compared with ${formatDate(summary.previous.date_from)} → ${formatDate(summary.previous.date_to)}`,
           ])
         );
       }
@@ -473,7 +473,7 @@ export async function render(root) {
         children.push(
           el("div", { class: "card" }, [
             el("div", { class: "row" }, [
-              el("span", { class: "muted", text: "Giroconti e investimenti esclusi" }),
+              el("span", { class: "muted", text: "Transfers and investments excluded" }),
               el("span", { class: "muted", text: money(summary.transferred) }),
             ]),
           ])

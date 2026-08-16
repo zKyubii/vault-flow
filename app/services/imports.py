@@ -169,8 +169,8 @@ def commit_import(
             rows_skipped=0,
             status="failed",
             error_message=(
-                f"{len(result.errors)} righe non interpretabili. "
-                f"Prima: riga {result.errors[0].line_no} — {result.errors[0].message}"
+                f"{len(result.errors)} rows could not be parsed. "
+                f"First: line {result.errors[0].line_no} — {result.errors[0].message}"
             ),
         )
         db.add(run)
@@ -201,7 +201,7 @@ def commit_import(
                 booked_at=row.booked_at,
                 amount=row.amount,
                 currency=row.currency,
-                description=row.description or "(senza descrizione)",
+                description=row.description or "(no description)",
                 counterparty=row.counterparty,
                 source="csv",
                 dedup_hash=row.dedup_hash,
@@ -217,7 +217,7 @@ def commit_import(
     run.rows_skipped = len(result.rows) - imported
     run.status = "completed"
     if result.errors:
-        run.error_message = f"{len(result.errors)} righe saltate perché illeggibili"
+        run.error_message = f"{len(result.errors)} rows skipped because they were unreadable"
 
     db.commit()
     db.refresh(run)

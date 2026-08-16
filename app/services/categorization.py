@@ -31,14 +31,14 @@ class InvalidRule(ValueError):
 
 def validate_pattern(match_type: str, pattern: str) -> None:
     if not pattern or not pattern.strip():
-        raise InvalidRule("Il pattern non può essere vuoto")
+        raise InvalidRule("The pattern cannot be empty")
     if len(pattern) > MAX_PATTERN_LENGTH:
-        raise InvalidRule(f"Pattern troppo lungo (massimo {MAX_PATTERN_LENGTH} caratteri)")
+        raise InvalidRule(f"Pattern too long (maximum {MAX_PATTERN_LENGTH} characters)")
     if match_type == "regex":
         try:
             re.compile(pattern, re.IGNORECASE)
         except re.error as exc:
-            raise InvalidRule(f"Espressione regolare non valida: {exc}") from None
+            raise InvalidRule(f"Invalid regular expression: {exc}") from None
 
 
 def _matches(rule: CategoryRule, text: str) -> bool:

@@ -19,7 +19,7 @@ export function showLogin(status = {}) {
     autofocus: true,
   });
 
-  const button = el("button", { class: "primary", text: "Entra", style: "width:100%" });
+  const button = el("button", { class: "primary", text: "Sign in", style: "width:100%" });
   const errorBox = el("div", { class: "login-error", hidden: true });
 
   const attempt = async () => {
@@ -51,11 +51,11 @@ export function showLogin(status = {}) {
     el("div", { class: "login-logo" }, [
       el("img", { src: "/static/icons/icon.svg", alt: "", width: 64, height: 64 }),
     ]),
-    el("h2", { class: "login-title", text: "Dashboard Spese" }),
+    el("h2", { class: "login-title", text: "Vault Flow" }),
     notConfigured
       ? el("div", { class: "login-error", style: "margin-bottom:0" }, [
-          "Nessuna password impostata. Apri il file .env, cambia APP_PASSWORD, " +
-            "poi riavvia con: docker compose restart app",
+          "No password configured. Open the .env file, set APP_PASSWORD, " +
+            "then restart with: docker compose restart app",
         ])
       : el("div", {}, [
           el("label", { text: "Password" }),

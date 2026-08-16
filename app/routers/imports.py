@@ -37,24 +37,24 @@ async def _read_upload(file: UploadFile) -> bytes:
     if len(data) > MAX_UPLOAD_BYTES:
         raise HTTPException(
             status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            f"File troppo grande (massimo {MAX_UPLOAD_BYTES // 1024 // 1024} MB)",
+            f"File too large (maximum {MAX_UPLOAD_BYTES // 1024 // 1024} MB)",
         )
     if not data:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "File vuoto")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Empty file")
     return data
 
 
 def _get_profile(db: Session, profile_id: int) -> ImportProfile:
     profile = db.get(ImportProfile, profile_id)
     if not profile:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Profilo di import inesistente")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Import profile not found")
     return profile
 
 
 def _get_account(db: Session, account_id: int) -> Account:
     account = db.get(Account, account_id)
     if not account:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Conto inesistente")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Account not found")
     return account
 
 
@@ -73,12 +73,12 @@ def create_profile(payload: ImportProfileCreate, db: Session = Depends(get_db)):
     if payload.amount_mode == "signed" and not payload.col_amount:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "Con amount_mode='signed' serve col_amount",
+            "amount_mode='signed' requires col_amount",
         )
     if payload.amount_mode == "separate" and not (payload.col_amount_in or payload.col_amount_out):
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "Con amount_mode='separate' servono col_amount_in e/o col_amount_out",
+            "amount_mode='separate' requires col_amount_in and/or col_amount_out",
         )
 
     profile = ImportProfile(**payload.model_dump())
@@ -87,7 +87,7 @@ def create_profile(payload: ImportProfileCreate, db: Session = Depends(get_db)):
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status.HTTP_409_CONFLICT, f"Esiste già un profilo '{payload.name}'")
+        raise HTTPException(status.HTTP_409_CONFLICT, f"A profile named '{payload.name}' already exists")
     db.refresh(profile)
     return profile
 
@@ -97,7 +97,7 @@ def delete_profile(profile_id: int, db: Session = Depends(get_db)):
     profile = _get_profile(db, profile_id)
     db.delete(profile)
     db.commit()
-    return Message(detail="Profilo eliminato")
+    return Message(detail="Profile deleted")
 
 
 # ---------------------------------------------------------------- ispezione
@@ -178,7 +178,7 @@ async def commit(
         db,
         account=account,
         profile=profile,
-        filename=file.filename or "senza-nome.csv",
+        filename=file.filename or "unnamed.csv",
         data=data,
         parse_profile=to_parse_profile(profile, default_currency=account.currency),
     )
@@ -196,12 +196,12 @@ def list_runs(db: Session = Depends(get_db)):
 def revert(run_id: int, db: Session = Depends(get_db)):
     run = db.get(ImportRun, run_id)
     if not run:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Import inesistente")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Import not found")
     if run.status == "reverted":
-        raise HTTPException(status.HTTP_409_CONFLICT, "Import già annullato")
+        raise HTTPException(status.HTTP_409_CONFLICT, "Import already undone")
 
     deleted = revert_import(db, run)
     return Message(
-        detail=f"Import annullato: {deleted} transazioni rimosse",
+        detail=f"Import undone: {deleted} transactions removed",
         data={"run_id": run_id, "deleted": deleted},
     )

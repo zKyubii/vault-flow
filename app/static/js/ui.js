@@ -1,6 +1,6 @@
 // Utilità condivise: formattazione e costruzione DOM.
 
-const eurFormatter = new Intl.NumberFormat("it-IT", {
+const eurFormatter = new Intl.NumberFormat(undefined, {
   style: "currency",
   currency: "EUR",
 });
@@ -16,7 +16,7 @@ export function formatDate(iso) {
 
 export function formatDayHeading(iso) {
   const date = new Date(iso + "T00:00:00");
-  return date.toLocaleDateString("it-IT", {
+  return date.toLocaleDateString(undefined, {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -26,7 +26,7 @@ export function formatDayHeading(iso) {
 
 export const monthLabel = (ym) => {
   const [y, m] = ym.split("-");
-  const names = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
+  const names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   return `${names[Number(m) - 1]} ${y.slice(2)}`;
 };
 
@@ -72,7 +72,7 @@ export function firstOfMonthISO() {
   return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
 }
 
-export function spinner(message = "Carico…") {
+export function spinner(message = "Loading…") {
   return el("div", { class: "spinner", text: message });
 }
 

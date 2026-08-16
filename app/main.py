@@ -46,8 +46,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Dashboard Spese",
-    description="Dashboard self-hosted per le spese personali.",
+    title="Vault Flow",
+    description="Self-hosted personal expense dashboard.",
     version="0.1.0",
     lifespan=lifespan,
 )

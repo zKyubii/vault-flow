@@ -57,11 +57,11 @@ def create_transaction(payload: TransactionCreate, db: Session = Depends(get_db)
     importo e descrizione.
     """
     if not db.get(Account, payload.account_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Conto inesistente")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Account not found")
     if payload.category_id is not None and not db.get(Category, payload.category_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Categoria inesistente")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Category not found")
     if payload.amount == 0:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "L'importo non può essere zero")
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "The amount cannot be zero")
 
     # Su inserimento manuale il "duplicato" è quasi sempre un doppio invio del
     # form, non un dato vero: si cerca il primo slot di occorrenza libero.
@@ -101,7 +101,7 @@ def create_transaction(payload: TransactionCreate, db: Session = Depends(get_db)
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status.HTTP_409_CONFLICT, "Transazione già presente")
+        raise HTTPException(status.HTTP_409_CONFLICT, "Transaction already exists")
     db.refresh(transaction)
     return transaction
 
@@ -118,9 +118,9 @@ def set_category(
     """
     transaction = db.get(Transaction, transaction_id)
     if not transaction:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Transazione inesistente")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Transaction not found")
     if payload.category_id is not None and not db.get(Category, payload.category_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Categoria inesistente")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Category not found")
 
     transaction.category_id = payload.category_id
     transaction.category_source = "manual" if payload.category_id is not None else None
@@ -133,7 +133,7 @@ def set_category(
 def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
     transaction = db.get(Transaction, transaction_id)
     if not transaction:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Transazione inesistente")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Transaction not found")
     db.delete(transaction)
     db.commit()
-    return Message(detail="Transazione eliminata")
+    return Message(detail="Transaction deleted")

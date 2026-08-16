@@ -77,30 +77,30 @@ def login(
     if wait:
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
-            f"Troppi tentativi falliti. Riprova fra {wait} secondi.",
+            f"Too many failed attempts. Try again in {wait} seconds.",
         )
 
     if not password_is_configured():
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Nessuna password impostata: modifica APP_PASSWORD nel file .env e "
-            "riavvia il container.",
+            "No password configured: set APP_PASSWORD in the .env file and "
+            "restart the container.",
         )
 
     if not check_password(password):
         record_failure(request)
-        log.warning("Tentativo di accesso fallito da %s", request.client.host if request.client else "?")
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Password errata")
+        log.warning("Failed sign-in attempt from %s", request.client.host if request.client else "?")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Wrong password")
 
     clear_failures(request)
     _set_cookie(response, make_token(get_secret(db)))
-    return {"detail": "Accesso effettuato"}
+    return {"detail": "Signed in"}
 
 
 @router.post("/auth/logout", response_model=Message)
 def logout(response: Response):
     response.delete_cookie(COOKIE_NAME, path="/")
-    return Message(detail="Uscita effettuata")
+    return Message(detail="Signed out")
 
 
 @router.post("/auth/logout-everywhere", response_model=Message)
@@ -109,4 +109,4 @@ def logout_everywhere(response: Response, db: Session = Depends(get_db)):
     dispositivi. Serve se si perde il telefono."""
     reset_secret(db)
     response.delete_cookie(COOKIE_NAME, path="/")
-    return Message(detail="Tutte le sessioni sono state chiuse")
+    return Message(detail="All sessions have been closed")

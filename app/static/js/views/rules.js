@@ -33,19 +33,19 @@ export async function render(root) {
   const reload = () => render(clear(root));
 
   // --- nuova regola ---
-  const patternInput = el("input", { type: "text", placeholder: "Es. spotify" });
+  const patternInput = el("input", { type: "text", placeholder: "e.g. spotify" });
   const catSelect = el("select", {}, categoryOptions(null));
   const matchSelect = el("select", {}, [
-    el("option", { value: "contains", text: "contiene" }),
-    el("option", { value: "starts_with", text: "inizia con" }),
-    el("option", { value: "exact", text: "è esattamente" }),
-    el("option", { value: "regex", text: "espressione regolare" }),
+    el("option", { value: "contains", text: "contains" }),
+    el("option", { value: "starts_with", text: "starts with" }),
+    el("option", { value: "exact", text: "is exactly" }),
+    el("option", { value: "regex", text: "regular expression" }),
   ]);
   const priorityInput = el("input", { type: "number", value: 100, min: 0 });
 
-  const createBtn = el("button", { class: "primary", text: "Crea regola", style: "width:100%;margin-top:12px" });
+  const createBtn = el("button", { class: "primary", text: "Create rule", style: "width:100%;margin-top:12px" });
   createBtn.addEventListener("click", async () => {
-    if (!patternInput.value.trim()) return toast("Scrivi cosa cercare", true);
+    if (!patternInput.value.trim()) return toast("Type what to look for", true);
     try {
       await api.createRule({
         pattern: patternInput.value.trim(),
@@ -53,7 +53,7 @@ export async function render(root) {
         match_type: matchSelect.value,
         priority: Number(priorityInput.value),
       });
-      toast("Regola creata");
+      toast("Rule created");
       reload();
     } catch (error) {
       toast(error.message, true);
@@ -61,21 +61,21 @@ export async function render(root) {
   });
 
   const newCard = el("div", { class: "card" }, [
-    el("h2", { text: "Nuova regola" }),
-    el("label", { text: "Se la descrizione…" }),
+    el("h2", { text: "New rule" }),
+    el("label", { text: "If the description…" }),
     matchSelect,
     patternInput,
     el("div", { class: "field-row" }, [
-      el("div", {}, [el("label", { text: "Categoria" }), catSelect]),
-      el("div", {}, [el("label", { text: "Priorità (più basso vince)" }), priorityInput]),
+      el("div", {}, [el("label", { text: "Category" }), catSelect]),
+      el("div", {}, [el("label", { text: "Priority (lower wins)" }), priorityInput]),
     ]),
     createBtn,
   ]);
 
   // --- applica ---
   const applyBox = el("div");
-  const dryBtn = el("button", { text: "Prova senza scrivere" });
-  const applyBtn = el("button", { class: "primary", text: "Applica" });
+  const dryBtn = el("button", { text: "Dry run" });
+  const applyBtn = el("button", { class: "primary", text: "Apply" });
 
   const runApply = async (dryRun) => {
     clear(applyBox).append(spinner());
@@ -86,12 +86,12 @@ export async function render(root) {
         el("div", { style: "margin-top:10px" }, [
           el("div", {
             text: dryRun
-              ? `Prova: ${result.updated} transazioni verrebbero categorizzate (niente è stato scritto)`
-              : `Categorizzate ${result.updated} transazioni`,
+              ? `Dry run: ${result.updated} transactions would be categorised (nothing was written)`
+              : `Categorised ${result.updated} transactions`,
           }),
           result.protected
             ? el("div", { class: "muted", style: "margin-top:4px" }, [
-                `${result.protected} lasciate stare perché corrette a mano`,
+                `${result.protected} left alone because they were set by hand`,
               ])
             : null,
           ...entries.map(([name, count]) =>
@@ -102,7 +102,7 @@ export async function render(root) {
           ),
         ])
       );
-      if (!dryRun) toast(`Categorizzate ${result.updated}`);
+      if (!dryRun) toast(`Categorised ${result.updated}`);
     } catch (error) {
       clear(applyBox).append(empty(error.message));
     }
@@ -112,9 +112,9 @@ export async function render(root) {
   applyBtn.addEventListener("click", () => runApply(false));
 
   const applyCard = el("div", { class: "card" }, [
-    el("h2", { text: "Applica alle transazioni esistenti" }),
+    el("h2", { text: "Apply to existing transactions" }),
     el("div", { class: "muted" }, [
-      "Le categorie scelte a mano non vengono mai sovrascritte.",
+      "Categories set by hand are never overwritten.",
     ]),
     el("div", { class: "row", style: "margin-top:12px;gap:8px" }, [dryBtn, applyBtn]),
     applyBox,
@@ -123,29 +123,29 @@ export async function render(root) {
   // --- giroconti rilevati ---
   const transfersBox = el("div");
   const transfersCard = el("div", { class: "card" }, [
-    el("h2", { text: "Giroconti rilevati" }),
+    el("h2", { text: "Detected transfers" }),
     el("div", { class: "muted" }, [
-      "Movimenti uguali e opposti su due conti diversi a pochi giorni di distanza: sono gli stessi soldi che si spostano, non spese.",
+      "Equal and opposite amounts on two different accounts a few days apart: the same money moving, not spending.",
     ]),
     el("button", {
       class: "small",
       style: "margin-top:10px",
-      text: "Cerca",
+      text: "Scan",
       onclick: async () => {
-        clear(transfersBox).append(spinner("Cerco…"));
+        clear(transfersBox).append(spinner("Scanning…"));
         try {
           const pairs = await api.detectTransfers({ window_days: 5 });
           const daMarcare = pairs.filter((p) => !p.already_marked);
           clear(transfersBox);
 
           if (!pairs.length) {
-            transfersBox.append(empty("Nessuna coppia trovata"));
+            transfersBox.append(empty("No pairs found"));
             return;
           }
 
           transfersBox.append(
             el("div", { class: "muted", style: "margin:10px 0 6px" }, [
-              `${pairs.length} coppie · ${daMarcare.length} non ancora marcate`,
+              `${pairs.length} pairs · ${daMarcare.length} not yet marked`,
             ])
           );
 
@@ -161,7 +161,7 @@ export async function render(root) {
                   el("span", { class: "amount", text: money(pair.amount) }),
                   el("span", {
                     class: "muted",
-                    text: pair.already_marked ? "già marcata" : `${pair.days_apart} gg`,
+                    text: pair.already_marked ? "already marked" : `${pair.days_apart} days apart`,
                   }),
                 ]),
               ])
@@ -171,23 +171,30 @@ export async function render(root) {
           if (daMarcare.length) {
             transfersBox.append(
               el("div", { class: "muted", style: "margin-top:10px;color:var(--neg);font-size:.78rem" }, [
-                "Controlla le descrizioni prima di applicare: due movimenti dello stesso importo a pochi giorni di distanza possono essere una coincidenza, non un giroconto.",
+                "Check the descriptions before applying: two transactions of the same amount a few days apart can be a coincidence, not a transfer.",
               ]),
               el("button", {
                 class: "primary",
                 style: "width:100%;margin-top:10px",
-                text: `Marca ${daMarcare.length} coppie come trasferimenti`,
+                text: `Mark ${daMarcare.length} pairs as transfers`,
                 onclick: async () => {
-                  const trasf = categories.find((c) => c.exclude_from_stats && c.name === "Trasferimenti");
-                  if (!trasf) return toast("Manca la categoria Trasferimenti", true);
+                  // Si cerca per **comportamento**, non per nome: la categoria
+                  // può chiamarsi in qualsiasi lingua o essere stata rinominata
+                  // dall'utente. Quello che conta è che sia esclusa dai totali.
+                  const transferCat =
+                    categories.find((c) => c.exclude_from_stats && /transfer|girocont/i.test(c.name)) ||
+                    categories.find((c) => c.exclude_from_stats);
+                  if (!transferCat) {
+                    return toast("No category excluded from statistics found", true);
+                  }
                   const ids = daMarcare.flatMap((p) => [p.out.id, p.in.id]);
                   try {
                     const result = await api.applyTransfers({
-                      category_id: trasf.id,
+                      category_id: transferCat.id,
                       window_days: 5,
                       transaction_ids: ids,
                     });
-                    toast(`Marcati ${result.updated} movimenti`);
+                    toast(`Marked ${result.updated} transactions`);
                     reload();
                   } catch (error) {
                     toast(error.message, true);
@@ -206,9 +213,9 @@ export async function render(root) {
 
   // --- suggerimenti ---
   const suggestionsCard = el("div", { class: "card" }, [
-    el("h2", { text: "Ricorrenti senza categoria" }),
+    el("h2", { text: "Recurring and uncategorised" }),
     el("div", { class: "muted", style: "margin-bottom:8px" }, [
-      "Tocca per precompilare una regola.",
+      "Tap to prefill a rule.",
     ]),
     ...(suggestions.length
       ? suggestions.map((s) =>
@@ -226,7 +233,7 @@ export async function render(root) {
             [
               el("div", { class: "stack" }, [
                 el("span", { class: "truncate", text: s.pattern }),
-                el("span", { class: "muted", text: `${s.count} movimenti` }),
+                el("span", { class: "muted", text: `${s.count} transactions` }),
               ]),
               el("span", {
                 class: `amount ${Number(s.total) < 0 ? "neg" : "pos"}`,
@@ -235,12 +242,12 @@ export async function render(root) {
             ]
           )
         )
-      : [empty("Tutto categorizzato")]),
+      : [empty("Everything is categorised")]),
   ]);
 
   // --- elenco regole ---
   const rulesCard = el("div", { class: "card" }, [
-    el("h2", { text: `Regole attive (${rules.length})` }),
+    el("h2", { text: `Active rules (${rules.length})` }),
     ...(rules.length
       ? rules.map((rule) => {
           const category = categories.find((c) => c.id === rule.category_id);
@@ -249,7 +256,7 @@ export async function render(root) {
               el("span", { class: "truncate", text: rule.pattern }),
               el("span", {
                 class: "muted",
-                text: `${rule.match_type} → ${category ? category.name : "?"} · priorità ${rule.priority}`,
+                text: `${rule.match_type} → ${category ? category.name : "?"} · priority ${rule.priority}`,
               }),
             ]),
             el("button", {
@@ -258,7 +265,7 @@ export async function render(root) {
               onclick: async () => {
                 try {
                   await api.deleteRule(rule.id);
-                  toast("Regola eliminata");
+                  toast("Rule deleted");
                   reload();
                 } catch (error) {
                   toast(error.message, true);
@@ -267,7 +274,7 @@ export async function render(root) {
             }),
           ]);
         })
-      : [empty("Nessuna regola")]),
+      : [empty("No rules yet")]),
   ]);
 
   root.replaceChildren(newCard, applyCard, transfersCard, suggestionsCard, rulesCard);
