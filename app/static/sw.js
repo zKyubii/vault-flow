@@ -18,7 +18,7 @@
 // message is more honest than letting someone believe they saved something
 // that may never arrive.
 
-const VERSION = "v4";
+const VERSION = "v5";
 const SHELL_CACHE = `vaultflow-shell-${VERSION}`;
 const DATA_CACHE = `vaultflow-data-${VERSION}`;
 const NETWORK_TIMEOUT = 2500;
@@ -39,6 +39,11 @@ const SHELL = [
   "/static/js/views/rules.js",
   "/static/manifest.webmanifest",
   "/static/icons/icon.svg",
+  "/static/icons/apple-touch-icon.png",
+  "/static/icons/icon-192.png",
+  "/static/icons/icon-512.png",
+  "/static/icons/icon-maskable-512.png",
+  "/static/icons/favicon-32.png",
 ];
 
 self.addEventListener("install", (event) => {

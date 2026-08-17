@@ -199,6 +199,9 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
 .view > *:nth-child(5) { animation-delay: .12s; }
 
 .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+/* Buttons of equal weight share the width instead of being flung to opposite
+   ends of the card with a void in the middle. */
+.row.equal > * { flex: 1 1 0; min-width: 0; }
 .stack { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 
 .amount {
@@ -236,9 +239,13 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
   letter-spacing: .1em;
   font-weight: 600;
 }
+/* Three boxes side by side leave roughly 88px of usable width on a 375px
+   phone. A five-figure amount at a fixed 1rem does not fit, and since the box
+   clips its overflow the number came out beheaded rather than merely tight.
+   `clamp` shrinks it only where the room is missing. */
 .total-box .value {
   font-family: var(--num);
-  font-size: 1rem;
+  font-size: clamp(.78rem, 3.4vw, 1rem);
   margin-top: 5px;
   font-variant-numeric: tabular-nums;
   font-weight: 650;
@@ -247,7 +254,7 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
 /* The balance is the headline number, but it stands out through **weight**,
    not a glow: when negative, a red halo reads as an alarm rather than data,
    and draws attention to something that is often perfectly normal. */
-.total-box:last-child .value { font-size: 1.1rem; font-weight: 700; }
+.total-box:last-child .value { font-size: clamp(.86rem, 3.8vw, 1.1rem); font-weight: 700; }
 
 .total-delta { font-size: .64rem; margin-top: 3px; font-weight: 700; letter-spacing: .02em; }
 .total-delta.up { color: var(--neg); }
@@ -313,7 +320,13 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
 .monthchart {
   display: flex;
   align-items: flex-end;
+  /* `safe center` and not plain `center`: when the columns are wider than the
+     container, centred flex content overflows on *both* sides and the part
+     that spills off the left edge becomes unreachable — scrolling only ever
+     reaches the right. It bites as soon as there is enough history, i.e. on
+     "All time". The plain value stays first as a fallback for old browsers. */
   justify-content: center;
+  justify-content: safe center;
   gap: 7px;
   height: 138px;
   overflow-x: auto;
@@ -442,6 +455,11 @@ input, select, textarea {
   font: inherit;
   font-family: var(--font);
   width: 100%;
+  /* A form control's *intrinsic* width is wider than you would think — on iOS
+     a date field reserves room for the whole formatted date plus the picker.
+     Without these two it refuses to shrink and overflows its container. */
+  min-width: 0;
+  max-width: 100%;
   padding: 11px 13px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
@@ -450,12 +468,30 @@ input, select, textarea {
   min-height: 44px;
   transition: border-color .18s, box-shadow .18s;
 }
+
+/* Two controls one after the other, with no label in between, had nothing
+   separating them: the vertical rhythm comes from the label's margin, and
+   where there is no label there was no gap (visible on the Rules screen,
+   where the match dropdown sat glued to the pattern field). */
+input + input, input + select, input + textarea,
+select + input, select + select, select + textarea,
+textarea + input, textarea + select { margin-top: 9px; }
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(33, 212, 180, 0.14);
 }
 input[type="number"], input[type="date"] { font-family: var(--num); font-variant-numeric: tabular-nums; }
+
+/* iOS Safari draws date fields with its own sizing and refuses to honour the
+   width it is given. Turning the native appearance off makes it behave like
+   any other field — the picker still opens on tap. */
+input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  text-align: left;
+}
 label {
   display: block;
   font-size: .7rem;
@@ -465,7 +501,19 @@ label {
   letter-spacing: .08em;
   font-weight: 600;
 }
-.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+/* `minmax(0, 1fr)` and not `1fr`: a grid item defaults to `min-width: auto`,
+   which means "never shrink below the content's natural width". With a date
+   field inside — naturally wide on iOS — the two columns burst out of their
+   tracks and ended up overlapping each other.
+   `align-items: end` keeps the two fields lined up even when one of the two
+   labels wraps onto a second line ("Priority (lower wins)" does, on a phone). */
+.field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  gap: 10px;
+}
+.field-row > * { min-width: 0; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 7px; }
 .chip {
@@ -577,6 +625,9 @@ table.preview tr.dup { opacity: .38; }
   transition: color .18s;
 }
 .tabbar a.active { color: var(--accent); }
+/* Five labels across a 320px screen: "Transactions" wrapped onto two lines and
+   knocked the icons out of alignment. */
+.tabbar a span { white-space: nowrap; }
 /* glowing thread above the active tab */
 .tabbar a.active::before {
   content: "";
@@ -671,6 +722,19 @@ body.locked { padding-bottom: 0; }
 
 .empty { text-align: center; color: var(--text-dim); padding: 40px 20px; font-size: .88rem; }
 .spinner { text-align: center; color: var(--text-dim); padding: 30px; font-size: .85rem; }
+
+/* --------------------------------------------------- very narrow screens */
+
+/* iPhone SE and anything else around 320px: the layout holds, the type just
+   needs to give up a little room. */
+@media (max-width: 359px) {
+  .view { padding: 12px; }
+  .card { padding: 13px; }
+  .tabbar a { font-size: .58rem; }
+  .chip { padding: 6px 11px; font-size: .78rem; }
+  .totals { gap: 7px; }
+  .total-box { padding: 11px 6px; }
+}
 
 /* -------------------------------------------------------------- desktop */
 

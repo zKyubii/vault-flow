@@ -116,7 +116,7 @@ export async function render(root) {
     el("div", { class: "muted" }, [
       "Categories set by hand are never overwritten.",
     ]),
-    el("div", { class: "row", style: "margin-top:12px;gap:8px" }, [dryBtn, applyBtn]),
+    el("div", { class: "row equal", style: "margin-top:12px;gap:8px" }, [dryBtn, applyBtn]),
     applyBox,
   ]);
 

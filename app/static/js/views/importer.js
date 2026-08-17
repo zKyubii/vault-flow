@@ -196,7 +196,7 @@ export async function render(root) {
         el("div", {}, [el("label", { text: "Profile" }), profileSelect]),
         el("div", {}, [el("label", { text: "Account" }), accountSelect]),
       ]),
-      el("div", { class: "row", style: "margin-top:14px;gap:8px" }, [previewBtn, commitBtn]),
+      el("div", { class: "row equal", style: "margin-top:14px;gap:8px" }, [previewBtn, commitBtn]),
     ]),
     inspectBox,
     previewBox,

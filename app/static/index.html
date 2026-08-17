@@ -7,12 +7,21 @@
   <title>Vault Flow</title>
   <link rel="manifest" href="/static/manifest.webmanifest">
   <link rel="icon" href="/static/icons/icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="/static/icons/icon.svg">
+  <link rel="icon" href="/static/icons/favicon-32.png" sizes="32x32" type="image/png">
+  <!-- iOS ignores SVG here: without a PNG the home-screen tile comes out blank.
+       The file is deliberately square — iOS rounds it itself. -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon.png">
+  <!-- Opens without Safari's chrome once added to the home screen. The manifest
+       says the same thing, but iOS only honours it from 16.4 onwards. -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Vault Flow">
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-  <!-- Sfondo: griglia sfumata e due aloni. Fissi e non cliccabili, stanno
-       dietro a tutto e non entrano mai nel flusso del contenuto. -->
+  <!-- Background: faded grid and two glows. Fixed and not clickable, they sit
+       behind everything and never enter the content flow. -->
   <div class="bg-grid" aria-hidden="true"></div>
   <div class="bg-glow one" aria-hidden="true"></div>
   <div class="bg-glow two" aria-hidden="true"></div>
