@@ -209,3 +209,9 @@ container.
 ## Licence
 
 MIT.
+
+The bundled typeface, [Space Grotesk](https://github.com/floriankarsten/space-grotesk),
+is licensed separately under the SIL Open Font License — see
+`app/static/fonts/OFL.txt`. It ships with the app rather than being pulled from
+a CDN: a self-hosted app should not have to ask a third party for permission to
+look right, and it must keep working offline.

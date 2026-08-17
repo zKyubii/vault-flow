@@ -18,7 +18,7 @@
 // message is more honest than letting someone believe they saved something
 // that may never arrive.
 
-const VERSION = "v5";
+const VERSION = "v6";
 const SHELL_CACHE = `vaultflow-shell-${VERSION}`;
 const DATA_CACHE = `vaultflow-data-${VERSION}`;
 const NETWORK_TIMEOUT = 2500;
@@ -44,6 +44,10 @@ const SHELL = [
   "/static/icons/icon-512.png",
   "/static/icons/icon-maskable-512.png",
   "/static/icons/favicon-32.png",
+  // Without these the app falls back to the system font as soon as it is
+  // offline — the one place where a self-hosted font would be most obvious.
+  "/static/fonts/space-grotesk-latin.woff2",
+  "/static/fonts/space-grotesk-latin-ext.woff2",
 ];
 
 self.addEventListener("install", (event) => {

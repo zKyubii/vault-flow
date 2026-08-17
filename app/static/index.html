@@ -17,6 +17,11 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Vault Flow">
+  <!-- The font is only discovered once the CSS has been parsed, which costs a
+       round trip and a visible reflow. Preloading starts it in parallel.
+       `crossorigin` is mandatory even same-origin: fonts are fetched in
+       anonymous mode, and without it the file is downloaded twice. -->
+  <link rel="preload" href="/static/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>

@@ -15,28 +15,47 @@
    background, on a light one the bright colours die.
    ========================================================================= */
 
-/* The preferred fonts are named first in the stack: if they are installed
-   on the device they get used, otherwise we fall back to system fonts and
-   nothing breaks.
+/* Space Grotesk is served from here, not from Google Fonts: a self-hosted app
+   that phones a CDN on every load is not really self-hosted, it stops looking
+   right the moment you are offline, and it hands a third party a log of when
+   you open your own accounts.
 
-   To ship them for real (offline too, without depending on Google Fonts,
-   which would break the PWA and add an external request to a self-hosted
-   project): download the .woff2 files from fonts.google.com into
-   app/static/fonts/ and uncomment the block below.
+   Two subsets instead of the whole family: `latin` carries everything the
+   interface needs (including accents, `€` and `›`), `latin-ext` is cheap
+   insurance. The Vietnamese subset is skipped — 20 KB nobody would ever read.
+   The browser downloads a file only if a character actually needs it, which is
+   what `unicode-range` is for.
+
+   A variable file (`font-weight: 300 700`): one download covers every weight
+   used in the interface.
+
+   Licensed under the SIL Open Font License — see fonts/OFL.txt, which must
+   travel with the font files. Regenerate the URLs from
+   fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700 */
 
 @font-face {
   font-family: "Space Grotesk";
-  src: url("/static/fonts/SpaceGrotesk-Variable.woff2") format("woff2");
+  src: url("/static/fonts/space-grotesk-latin.woff2") format("woff2");
   font-weight: 300 700;
+  font-style: normal;
+  /* `swap`: text shows immediately in the fallback font and is repainted when
+     the file lands. The alternative is a few hundred milliseconds of invisible
+     text on a slow connection. */
   font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
-  font-family: "JetBrains Mono";
-  src: url("/static/fonts/JetBrainsMono-Variable.woff2") format("woff2");
-  font-weight: 400 700;
+  font-family: "Space Grotesk";
+  src: url("/static/fonts/space-grotesk-latin-ext.woff2") format("woff2");
+  font-weight: 300 700;
+  font-style: normal;
   font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
-*/
 
 :root {
   --bg: #080c10;          /* near-black, cold */
@@ -67,7 +86,6 @@
      fixed-width digits (`tabular-nums`). Columns of amounts still line up,
      without the terminal look. */
   --num: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 * { box-sizing: border-box; }
